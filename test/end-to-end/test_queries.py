@@ -20,6 +20,13 @@ class TestQueries(SqlTestCase):
             (1, 2)
         )
 
+    def test_select_parenthesizing(self):
+        self.assertSqlEqual(
+            Select(1) + 2,
+            '(select ?) + ?',
+            (1, 2)
+        )
+
 
 if __name__ == "__main__":
     import sys
