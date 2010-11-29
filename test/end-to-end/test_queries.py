@@ -8,8 +8,15 @@ from orm.query import *
 class TestQueries(SqlTestCase):
     def test_queries(self):
         self.assertSqlEqual(
-            Select(Expr(1) & Expr(2) - Sql('current_timestamp')),
-            'select ? and ? - current_timestamp',
+            Select(Expr(1) & Expr(2) - ~Sql('current_timestamp')),
+            'select ? and (? - (not current_timestamp))',
+            (1, 2)
+        )
+
+    def test_binary_op_binding(self):
+        self.assertSqlEqual(
+            Select((Expr(1) & 2) - Sql('current_timestamp')),
+            'select (? and ?) - current_timestamp',
             (1, 2)
         )
 

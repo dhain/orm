@@ -64,9 +64,16 @@ class Expr(object):
         return args()
 
 
-class UnaryOp(Expr):
+class Op(Expr):
+    pass
+
+
+class UnaryOp(Op):
     def sql(self):
-        return '%s %s' % (self._op, super(UnaryOp, self).sql())
+        sql = super(UnaryOp, self).sql()
+        if isinstance(self.value, Op):
+            return '%s (%s)' % (self._op, sql)
+        return '%s %s' % (self._op, sql)
 
 
 for class_name, op, method_name in unary_ops:
@@ -74,13 +81,19 @@ for class_name, op, method_name in unary_ops:
 del class_name, op, unary_ops
 
 
-class BinaryOp(Expr):
+class BinaryOp(Op):
     def __init__(self, lvalue, rvalue):
         self.lvalue = lvalue if isinstance(lvalue, Expr) else Expr(lvalue)
         self.rvalue = rvalue if isinstance(rvalue, Expr) else Expr(rvalue)
 
     def sql(self):
-        return '%s %s %s' % (self.lvalue.sql(), self._op, self.rvalue.sql())
+        lsql = self.lvalue.sql()
+        if isinstance(self.lvalue, Op):
+            lsql = '(%s)' % (lsql,)
+        rsql = self.rvalue.sql()
+        if isinstance(self.rvalue, Op):
+            rsql = '(%s)' % (rsql,)
+        return '%s %s %s' % (lsql, self._op, rsql)
 
     def args(self):
         return self.lvalue.args() + self.rvalue.args()

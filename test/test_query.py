@@ -63,6 +63,12 @@ class TestUnaryOps(SqlTestCase):
             inst = cls(1)
             self.assertSqlEqual(inst, '%s ?' % (op,), (1,))
 
+    def test_parenthesization(self):
+        for class_name, op, method_name in unary_ops:
+            cls = globals()[class_name]
+            inst = cls(Expr(1) + Expr(2))
+            self.assertSqlEqual(inst, '%s (? + ?)' % (op,), (1, 2))
+
 
 class TestBinaryOps(SqlTestCase):
     def test_binary_ops(self):
@@ -76,6 +82,14 @@ class TestBinaryOps(SqlTestCase):
                 '? %s %s' % (op, rvalue.sql()),
                 (lvalue,) + rvalue.args()
             )
+
+    def test_parenthesization(self):
+        for class_name, op, method_name in binary_ops:
+            cls = globals()[class_name]
+            inst = cls(~Expr(1), 2)
+            self.assertSqlEqual(inst, '(not ?) %s ?' % (op,), (1, 2))
+            inst = cls(1, ~Expr(2))
+            self.assertSqlEqual(inst, '? %s (not ?)' % (op,), (1, 2))
 
 
 class TestSql(SqlTestCase):
