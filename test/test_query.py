@@ -6,6 +6,8 @@ from orm.query import *
 
 
 binary_ops = [
+    ('Eq', '=', '__eq__'),
+    ('Ne', '!=', '__ne__'),
     ('Lt', '<', '__lt__'),
     ('Gt', '>', '__gt__'),
     ('Le', '<=', '__le__'),
@@ -17,16 +19,22 @@ binary_ops = [
     ('Mul', '*', '__mul__'),
     ('Div', '/', '__div__'),
     ('Mod', '%', '__mod__'),
+    ('In', 'in', 'isin'),
     ('Like', 'like', 'like'),
     ('Glob', 'glob', 'glob'),
     ('Match', 'match', 'match'),
     ('Regexp', 'regexp', 'regexp'),
 ]
 
-unary_ops = [
+prefix_unary_ops = [
     ('Not', 'not', '__invert__'),
     ('Pos', '+', '__pos__'),
     ('Neg', '-', '__neg__'),
+]
+
+postfix_unary_ops = [
+    ('IsNull', 'isnull', 'isnull'),
+    ('NotNull', 'notnull', 'notnull'),
 ]
 
 
@@ -49,7 +57,9 @@ class TestExpr(SqlTestCase):
 
     def test_unary_ops(self):
         expr = Expr(1)
-        for class_name, op, method_name in unary_ops:
+        for class_name, op, method_name in (
+            prefix_unary_ops + postfix_unary_ops
+        ):
             cls = globals()[class_name]
             res = getattr(expr, method_name)()
             self.assertTrue(isinstance(res, cls))
@@ -58,16 +68,24 @@ class TestExpr(SqlTestCase):
 
 class TestUnaryOps(SqlTestCase):
     def test_unary_ops(self):
-        for class_name, op, method_name in unary_ops:
+        for class_name, op, method_name in prefix_unary_ops:
             cls = globals()[class_name]
             inst = cls(1)
             self.assertSqlEqual(inst, '%s ?' % (op,), (1,))
+        for class_name, op, method_name in postfix_unary_ops:
+            cls = globals()[class_name]
+            inst = cls(1)
+            self.assertSqlEqual(inst, '? %s' % (op,), (1,))
 
     def test_parenthesization(self):
-        for class_name, op, method_name in unary_ops:
+        for class_name, op, method_name in prefix_unary_ops:
             cls = globals()[class_name]
             inst = cls(Expr(1) + Expr(2))
             self.assertSqlEqual(inst, '%s (? + ?)' % (op,), (1, 2))
+        for class_name, op, method_name in postfix_unary_ops:
+            cls = globals()[class_name]
+            inst = cls(Expr(1) + Expr(2))
+            self.assertSqlEqual(inst, '(? + ?) %s' % (op,), (1, 2))
 
 
 class TestBinaryOps(SqlTestCase):

@@ -27,6 +27,13 @@ class TestQueries(SqlTestCase):
             (1, 2)
         )
 
+    def test_isin_select(self):
+        self.assertSqlEqual(
+            Expr(1).isin(Select(2)),
+            '? in (select ?)',
+            (1, 2)
+        )
+
 
 if __name__ == "__main__":
     import sys

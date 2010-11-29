@@ -1,4 +1,6 @@
 binary_ops = [
+    ('Eq', '=', '__eq__'),
+    ('Ne', '!=', '__ne__'),
     ('Lt', '<', '__lt__'),
     ('Gt', '>', '__gt__'),
     ('Le', '<=', '__le__'),
@@ -10,16 +12,22 @@ binary_ops = [
     ('Mul', '*', '__mul__'),
     ('Div', '/', '__div__'),
     ('Mod', '%', '__mod__'),
+    ('In', 'in', 'isin'),
     ('Like', 'like', 'like'),
     ('Glob', 'glob', 'glob'),
     ('Match', 'match', 'match'),
     ('Regexp', 'regexp', 'regexp'),
 ]
 
-unary_ops = [
+prefix_unary_ops = [
     ('Not', 'not', '__invert__'),
     ('Pos', '+', '__pos__'),
     ('Neg', '-', '__neg__'),
+]
+
+postfix_unary_ops = [
+    ('IsNull', 'isnull', 'isnull'),
+    ('NotNull', 'notnull', 'notnull'),
 ]
 
 
@@ -27,7 +35,7 @@ class Expr(object):
     def __init__(self, value):
         self.value = value
 
-    for class_name, op, method_name in unary_ops:
+    for class_name, op, method_name in prefix_unary_ops + postfix_unary_ops:
         eval(compile(
             ('''
                 def %s(self):
@@ -68,17 +76,30 @@ class Parenthesizing(object):
     pass
 
 
-class UnaryOp(Expr, Parenthesizing):
+class PrefixUnaryOp(Expr, Parenthesizing):
     def sql(self):
-        sql = super(UnaryOp, self).sql()
+        sql = super(PrefixUnaryOp, self).sql()
         if isinstance(self.value, Parenthesizing):
             return '%s (%s)' % (self._op, sql)
         return '%s %s' % (self._op, sql)
 
 
-for class_name, op, method_name in unary_ops:
-    locals()[class_name] = type(class_name, (UnaryOp,), dict(_op=op))
-del class_name, op, unary_ops
+class PostfixUnaryOp(Expr, Parenthesizing):
+    def sql(self):
+        sql = super(PostfixUnaryOp, self).sql()
+        if isinstance(self.value, Parenthesizing):
+            return '(%s) %s' % (sql, self._op)
+        return '%s %s' % (sql, self._op)
+
+
+for class_name, op, method_name in prefix_unary_ops:
+    locals()[class_name] = type(class_name, (PrefixUnaryOp,), dict(_op=op))
+del class_name, op, prefix_unary_ops
+
+
+for class_name, op, method_name in postfix_unary_ops:
+    locals()[class_name] = type(class_name, (PostfixUnaryOp,), dict(_op=op))
+del class_name, op, postfix_unary_ops
 
 
 class BinaryOp(Expr, Parenthesizing):
