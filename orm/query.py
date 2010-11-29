@@ -94,12 +94,12 @@ class PostfixUnaryOp(Expr, Parenthesizing):
 
 for class_name, op, method_name in prefix_unary_ops:
     locals()[class_name] = type(class_name, (PrefixUnaryOp,), dict(_op=op))
-del class_name, op, prefix_unary_ops
+del class_name, op, method_name, prefix_unary_ops
 
 
 for class_name, op, method_name in postfix_unary_ops:
     locals()[class_name] = type(class_name, (PostfixUnaryOp,), dict(_op=op))
-del class_name, op, postfix_unary_ops
+del class_name, op, method_name, postfix_unary_ops
 
 
 class BinaryOp(Expr, Parenthesizing):
@@ -122,7 +122,7 @@ class BinaryOp(Expr, Parenthesizing):
 
 for class_name, op, method_name in binary_ops:
     locals()[class_name] = type(class_name, (BinaryOp,), dict(_op=op))
-del class_name, op, binary_ops
+del class_name, op, method_name, binary_ops
 
 
 class Sql(Expr):
