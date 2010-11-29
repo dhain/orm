@@ -116,6 +116,79 @@ class TestSql(SqlTestCase):
         self.assertSqlEqual(Sql(sql), sql)
 
 
+class TestExprList(SqlTestCase):
+    def test_exprlist(self):
+        expr = ExprList(range(3))
+        self.assertSqlEqual(expr, '?, ?, ?', (0, 1, 2))
+
+    def test_append(self):
+        expr = ExprList()
+        self.assertSqlEqual(expr, '')
+        expr.append(1)
+        self.assertSqlEqual(expr, '?', (1,))
+        expr.append(2)
+        self.assertSqlEqual(expr, '?, ?', (1, 2))
+
+    def test_extend(self):
+        expr = ExprList()
+        expr.extend(range(3))
+        self.assertSqlEqual(expr, '?, ?, ?', (0, 1, 2))
+
+    def test_insert(self):
+        expr = ExprList((1, 2))
+        expr.insert(0, 0)
+        self.assertSqlEqual(expr, '?, ?, ?', (0, 1, 2))
+
+    def test_getitem(self):
+        expr = ExprList(range(3))
+        self.assertSqlEqual(expr.__getitem__(0), '?', (0,))
+        self.assertSqlEqual(expr.__getitem__(slice(1, None)), '?, ?', (1, 2))
+
+    def test_getslice(self):
+        expr = ExprList(range(3))
+        self.assertSqlEqual(expr.__getslice__(1, 3), '?, ?', (1, 2))
+
+    def test_setitem(self):
+        expr = ExprList(range(3))
+        expr.__setitem__(0, 4)
+        self.assertSqlEqual(expr, '?, ?, ?', (4, 1, 2))
+        expr.__setitem__(slice(1, None), [5, 6])
+        self.assertSqlEqual(expr, '?, ?, ?', (4, 5, 6))
+
+    def test_setslice(self):
+        expr = ExprList(range(3))
+        expr.__setslice__(1, 3, [3, 4])
+        self.assertSqlEqual(expr, '?, ?, ?', (0, 3, 4))
+
+    def test_add(self):
+        expr = ExprList() + [1, 2, 3]
+        self.assertSqlEqual(expr, '?, ?, ?', (1, 2, 3))
+
+    def test_iadd(self):
+        expr = ExprList()
+        expr += [1, 2, 3]
+        self.assertSqlEqual(expr, '?, ?, ?', (1, 2, 3))
+
+    def test_mul(self):
+        expr = ExprList([0])
+        expr = expr * 3
+        self.assertSqlEqual(expr, '?, ?, ?', (0, 0, 0))
+
+    def test_rmul(self):
+        expr = ExprList([0])
+        expr = 3 * expr
+        self.assertSqlEqual(expr, '?, ?, ?', (0, 0, 0))
+
+    def test_imul(self):
+        expr = ExprList([0])
+        expr *= 3
+        self.assertSqlEqual(expr, '?, ?, ?', (0, 0, 0))
+
+    def test_parenthesization(self):
+        expr = ExprList([~Expr(1), 2])
+        self.assertSqlEqual(expr, '(not ?), ?', (1, 2))
+
+
 class TestSelect(SqlTestCase):
     def test_basic_value(self):
         self.assertSqlEqual(Select(1), 'select ?', (1,))

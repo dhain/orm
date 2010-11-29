@@ -133,6 +133,78 @@ class Sql(Expr):
         return ()
 
 
+class ExprList(list, Expr, Parenthesizing):
+    _no_sequence = object()
+
+    def __init__(self, sequence=_no_sequence):
+        if sequence is ExprList._no_sequence:
+            return super(ExprList, self).__init__()
+        return super(ExprList, self).__init__((
+            item if isinstance(item, Expr) else Expr(item)
+            for item in sequence
+        ))
+
+    def append(self, object):
+        super(ExprList, self).append(
+            object if isinstance(object, Expr) else Expr(object))
+
+    def extend(self, iterable):
+        super(ExprList, self).extend((
+            object if isinstance(object, Expr) else Expr(object)
+            for object in iterable
+        ))
+
+    def insert(self, index, object):
+        super(ExprList, self).insert(index,
+            object if isinstance(object, Expr) else Expr(object))
+
+    def __getitem__(self, y):
+        if isinstance(y, (int, long)):
+            return super(ExprList, self).__getitem__(y)
+        return ExprList(super(ExprList, self).__getitem__(y))
+
+    def __getslice__(self, i, j):
+        return ExprList(super(ExprList, self).__getslice__(i, j))
+
+    def __setitem__(self, i, y):
+        if isinstance(i, (int, long)):
+            super(ExprList, self).__setitem__(i,
+                y if isinstance(y, Expr) else Expr(y))
+        else:
+            super(ExprList, self).__setitem__(i, ExprList(y))
+
+    def __setslice__(self, i, j, y):
+        super(ExprList, self).__setslice__(i, j, ExprList(y))
+
+    def __add__(self, other):
+        ret = self[:]
+        ret.extend(other)
+        return ret
+
+    def __iadd__(self, other):
+        self.extend(other)
+        return self
+
+    def __mul__(self, n):
+        return ExprList(super(ExprList, self).__mul__(n))
+
+    __rmul__ = __mul__
+
+    def sql(self):
+        items = ((item.sql(), isinstance(item, Parenthesizing))
+                 for item in self)
+        return ', '.join(
+            '(%s)' % (sql,) if paren else sql
+            for sql, paren in items
+        )
+
+    def args(self):
+        args = []
+        for item in self:
+            args.extend(item.args())
+        return tuple(args)
+
+
 class Select(Expr, Parenthesizing):
     def sql(self):
         return 'select ' + super(Select, self).sql()

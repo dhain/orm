@@ -20,7 +20,12 @@ class TestQueries(SqlTestCase):
             (1, 2)
         )
 
-    def test_select_parenthesizing(self):
+    def test_parenthesizing(self):
+        self.assertSqlEqual(
+            ~ExprList([1]),
+            'not (?)',
+            (1,)
+        )
         self.assertSqlEqual(
             Select(1) + 2,
             '(select ?) + ?',
