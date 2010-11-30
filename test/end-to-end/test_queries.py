@@ -12,6 +12,21 @@ class TestQueries(SqlTestCase):
             'select ? and (? - (not current_timestamp))',
             (1, 2)
         )
+        self.assertSqlEqual(
+            Select(
+                Sql('some_column'),
+                Sql('some_table'),
+                (Sql('some_column') / 2 == 3) & ~Sql('other_column'),
+                Desc(Sql('order_column')),
+                Limit(slice(3, 5))
+            ),
+            'select some_column '
+            'from some_table '
+            'where ((some_column / ?) = ?) and (not other_column) '
+            'order by order_column desc '
+            'limit 3, 2',
+            (2, 3)
+        )
 
     def test_binary_op_binding(self):
         self.assertSqlEqual(

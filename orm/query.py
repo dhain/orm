@@ -216,30 +216,33 @@ class Desc(Expr):
 
 
 class Limit(Sql):
-    def __init__(self, slice):
-        if slice.step is not None:
+    def __init__(self, limit_slice):
+        if isinstance(limit_slice, (int, long)):
+            limit_slice = slice(limit_slice)
+        if limit_slice.step is not None:
             raise TypeError('step is not supported')
         if (
-            (slice.stop is not None and slice.stop < 0) or
-            (slice.start is not None and slice.start < 0)
+            (limit_slice.stop is not None and limit_slice.stop < 0) or
+            (limit_slice.start is not None and limit_slice.start < 0)
         ):
             raise NotImplementedError('negative slice values not supported')
         if (
-            (slice.stop is not None and
-             not isinstance(slice.stop, (int, long))) or
-            (slice.start is not None and
-             not isinstance(slice.start, (int, long)))
+            (limit_slice.stop is not None and
+             not isinstance(limit_slice.stop, (int, long))) or
+            (limit_slice.start is not None and
+             not isinstance(limit_slice.start, (int, long)))
         ):
             raise TypeError('slice values must be numbers')
         if (
-            slice.start is not None and
-            slice.stop is not None and
-            slice.stop < slice.start
+            limit_slice.start is not None and
+            limit_slice.stop is not None and
+            limit_slice.stop < limit_slice.start
         ):
             raise ValueError('stop must be greater than start')
-        self.start = slice.start
-        self.limit = (None if slice.stop is None else (
-            slice.stop if slice.start is None else slice.stop - slice.start))
+        self.start = limit_slice.start
+        self.limit = (None if limit_slice.stop is None else (
+            limit_slice.stop if limit_slice.start is None
+            else limit_slice.stop - limit_slice.start))
 
     def sql(self):
         if self.start is None and self.limit is None:
@@ -252,21 +255,37 @@ class Limit(Sql):
 
 
 class Select(Expr, Parenthesizing):
-    def __init__(self, what=None, sources=None):
+    def __init__(self, what=None, sources=None,
+                 where=None, order=None, limit=None):
         if what is None:
             self.what = Sql('*')
         else:
             self.what = what if isinstance(what, Expr) else Expr(what)
         self.sources = sources
+        self.where = where
+        self.order = order
+        self.limit = limit
 
     def sql(self):
         sql = 'select ' + self.what.sql()
         if self.sources is not None:
             sql += ' from ' + self.sources.sql()
+        if self.where is not None:
+            sql += ' where ' + self.where.sql()
+        if self.order is not None:
+            sql += ' order by ' + self.order.sql()
+        if self.limit is not None:
+            sql += ' ' + self.limit.sql()
         return sql
 
     def args(self):
         args = list(self.what.args())
         if self.sources is not None:
             args.extend(self.sources.args())
+        if self.where is not None:
+            args.extend(self.where.args())
+        if self.order is not None:
+            args.extend(self.order.args())
+        if self.limit is not None:
+            args.extend(self.limit.args())
         return tuple(args)

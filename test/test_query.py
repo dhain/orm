@@ -202,6 +202,9 @@ class TestLimit(SqlTestCase):
         limit = Limit(slice(None))
         self.assertSqlEqual(limit, '')
 
+    def test_simple_number_limit(self):
+        self.assertSqlEqual(Limit(3), 'limit 3')
+
     def test_non_number_raises_typeerror(self):
         self.assertRaises(TypeError, Limit, slice('asdf'))
         self.assertRaises(TypeError, Limit, slice('asdf', None))
@@ -246,6 +249,24 @@ class TestSelect(SqlTestCase):
         self.assertSqlEqual(
             Select(sources=Sql('some_table')),
             'select * from some_table'
+        )
+
+    def test_where(self):
+        self.assertSqlEqual(
+            Select(where=Sql('some_condition')),
+            'select * where some_condition'
+        )
+
+    def test_order(self):
+        self.assertSqlEqual(
+            Select(order=Desc(Sql('some_column'))),
+            'select * order by some_column desc'
+        )
+
+    def test_limit(self):
+        self.assertSqlEqual(
+            Select(limit=Limit(2)),
+            'select * limit 2'
         )
 
 
