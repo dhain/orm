@@ -232,12 +232,21 @@ class TestLimit(SqlTestCase):
 
 
 class TestSelect(SqlTestCase):
+    def test_select(self):
+        self.assertSqlEqual(Select(), 'select *')
+
     def test_basic_value(self):
         self.assertSqlEqual(Select(1), 'select ?', (1,))
 
     def test_sql_value(self):
         sql = 'some raw sql string'
         self.assertSqlEqual(Select(Sql(sql)), 'select %s' % (sql,))
+
+    def test_sources(self):
+        self.assertSqlEqual(
+            Select(sources=Sql('some_table')),
+            'select * from some_table'
+        )
 
 
 if __name__ == "__main__":

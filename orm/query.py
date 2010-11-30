@@ -252,5 +252,21 @@ class Limit(Sql):
 
 
 class Select(Expr, Parenthesizing):
+    def __init__(self, what=None, sources=None):
+        if what is None:
+            self.what = Sql('*')
+        else:
+            self.what = what if isinstance(what, Expr) else Expr(what)
+        self.sources = sources
+
     def sql(self):
-        return 'select ' + super(Select, self).sql()
+        sql = 'select ' + self.what.sql()
+        if self.sources is not None:
+            sql += ' from ' + self.sources.sql()
+        return sql
+
+    def args(self):
+        args = list(self.what.args())
+        if self.sources is not None:
+            args.extend(self.sources.args())
+        return tuple(args)
