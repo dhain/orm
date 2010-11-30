@@ -275,6 +275,30 @@ class TestSelect(SqlTestCase):
             'select 1 limit 2'
         )
 
+    def test_combined(self):
+        self.assertSqlEqual(
+            Select(
+                Sql('some_column'),
+                Sql('some_table'),
+                (Sql('some_column') / 2 == 3) & ~Sql('other_column'),
+                Desc(Sql('order_column')),
+                Limit(slice(3, 5))
+            ),
+            'select some_column '
+            'from some_table '
+            'where ((some_column / ?) = ?) and (not other_column) '
+            'order by order_column desc '
+            'limit 3, 2',
+            (2, 3)
+        )
+
+    def test_isin_select(self):
+        self.assertSqlEqual(
+            Expr(3).isin(Select(Sql('some_column'), Sql('some_table'))),
+            '? in (select some_column from some_table)',
+            (3,)
+        )
+
     def test_getitem_slice(self):
         self.assertSqlEqual(
             Select(Sql('1'))[:2],
