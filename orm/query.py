@@ -36,25 +36,17 @@ class Expr(object):
         self.value = value
 
     for class_name, op, method_name in prefix_unary_ops + postfix_unary_ops:
-        eval(compile(
-            ('''
-                def %s(self):
-                    return %s(self)
-            ''' % (method_name, class_name)).strip(),
-            __file__,
-            'exec'
-        ))
+        exec ('''
+            def %s(self):
+                return %s(self)
+        ''' % (method_name, class_name)).strip()
     del class_name, op, method_name
 
     for class_name, op, method_name in binary_ops:
-        eval(compile(
-            ('''
-                def %s(self, other):
-                    return %s(self, other)
-            ''' % (method_name, class_name)).strip(),
-            __file__,
-            'exec'
-        ))
+        exec ('''
+            def %s(self, other):
+                return %s(self, other)
+        ''' % (method_name, class_name)).strip()
     del class_name, op, method_name
 
     def sql(self):
