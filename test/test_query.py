@@ -189,6 +189,14 @@ class TestExprList(SqlTestCase):
         self.assertSqlEqual(expr, '(not ?), ?', (1, 2))
 
 
+class TestOrdering(SqlTestCase):
+    def test_asc(self):
+        self.assertSqlEqual(Asc(Sql('column1')), 'column1 asc')
+
+    def test_desc(self):
+        self.assertSqlEqual(Desc(Sql('column1')), 'column1 desc')
+
+
 class TestSelect(SqlTestCase):
     def test_basic_value(self):
         self.assertSqlEqual(Select(1), 'select ?', (1,))

@@ -205,6 +205,16 @@ class ExprList(list, Expr, Parenthesizing):
         return tuple(args)
 
 
+class Asc(Expr):
+    def sql(self):
+        return super(Asc, self).sql() + ' asc'
+
+
+class Desc(Expr):
+    def sql(self):
+        return super(Desc, self).sql() + ' desc'
+
+
 class Select(Expr, Parenthesizing):
     def sql(self):
         return 'select ' + super(Select, self).sql()
