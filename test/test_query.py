@@ -275,6 +275,12 @@ class TestSelect(SqlTestCase):
             'select 1 limit 2'
         )
 
+    def test_getitem_slice(self):
+        self.assertSqlEqual(
+            Select(Sql('1'))[:2],
+            'select 1 limit 2'
+        )
+
     def test_order_by(self):
         self.assertSqlEqual(
             Select(1).order_by(Sql('some_column'), Desc(Sql('other_column'))),

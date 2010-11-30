@@ -276,6 +276,10 @@ class Select(Expr, Parenthesizing):
             where = self.where & where
         return Select(self.what, self.sources, where, self.order, self.limit)
 
+    def __getitem__(self, y):
+        return Select(self.what, self.sources,
+                      self.where, self.order, Limit(y))
+
     def sql(self):
         sql = 'select ' + self.what.sql()
         if self.sources is not None:
