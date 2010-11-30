@@ -1,6 +1,6 @@
 import unittest
 
-from .util import SqlTestCase
+from .util import SqlTestCase, main
 
 from orm.model import *
 
@@ -47,8 +47,4 @@ class TestModel(SqlTestCase):
 
 
 if __name__ == "__main__":
-    import sys
-    tests = unittest.defaultTestLoader.loadTestsFromModule(
-        sys.modules[__name__])
-    test_suite = unittest.TestSuite(tests)
-    unittest.TextTestRunner(verbosity=2).run(test_suite)
+    main(__name__)
