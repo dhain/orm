@@ -215,6 +215,42 @@ class Desc(Expr):
         return super(Desc, self).sql() + ' desc'
 
 
+class Limit(Sql):
+    def __init__(self, slice):
+        if slice.step is not None:
+            raise TypeError('step is not supported')
+        if (
+            (slice.stop is not None and slice.stop < 0) or
+            (slice.start is not None and slice.start < 0)
+        ):
+            raise NotImplementedError('negative slice values not supported')
+        if (
+            (slice.stop is not None and
+             not isinstance(slice.stop, (int, long))) or
+            (slice.start is not None and
+             not isinstance(slice.start, (int, long)))
+        ):
+            raise TypeError('slice values must be numbers')
+        if (
+            slice.start is not None and
+            slice.stop is not None and
+            slice.stop < slice.start
+        ):
+            raise ValueError('stop must be greater than start')
+        self.start = slice.start
+        self.limit = (None if slice.stop is None else (
+            slice.stop if slice.start is None else slice.stop - slice.start))
+
+    def sql(self):
+        if self.start is None and self.limit is None:
+            return ''
+        if self.start is None:
+            return 'limit %d' % (self.limit,)
+        if self.limit is None:
+            return 'limit %d, -1' % (self.start,)
+        return 'limit %d, %d' % (self.start, self.limit)
+
+
 class Select(Expr, Parenthesizing):
     def sql(self):
         return 'select ' + super(Select, self).sql()

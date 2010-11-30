@@ -197,6 +197,40 @@ class TestOrdering(SqlTestCase):
         self.assertSqlEqual(Desc(Sql('column1')), 'column1 desc')
 
 
+class TestLimit(SqlTestCase):
+    def test_no_limit(self):
+        limit = Limit(slice(None))
+        self.assertSqlEqual(limit, '')
+
+    def test_non_number_raises_typeerror(self):
+        self.assertRaises(TypeError, Limit, slice('asdf'))
+        self.assertRaises(TypeError, Limit, slice('asdf', None))
+
+    def test_step_raises_typeerror(self):
+        self.assertRaises(TypeError, Limit, slice(10, 11, 2))
+
+    def test_upper_less_than_lower_raises_valueerror(self):
+        self.assertRaises(ValueError, Limit, slice(11, 9))
+
+    def test_negative_values_raise_notimplementederror(self):
+        self.assertRaises(NotImplementedError, Limit, slice(-1))
+        self.assertRaises(NotImplementedError, Limit, slice(-1, None))
+
+    def test_upper_limit(self):
+        limit = Limit(slice(10))
+        self.assertSqlEqual(limit, 'limit 10')
+
+    def test_lower_limit(self):
+        limit = Limit(slice(10, None))
+        self.assertSqlEqual(limit, 'limit 10, -1')
+
+    def test_upper_and_lower_limit(self):
+        limit = Limit(slice(10, 11))
+        self.assertSqlEqual(limit, 'limit 10, 1')
+        limit = Limit(slice(9, 14))
+        self.assertSqlEqual(limit, 'limit 9, 5')
+
+
 class TestSelect(SqlTestCase):
     def test_basic_value(self):
         self.assertSqlEqual(Select(1), 'select ?', (1,))
