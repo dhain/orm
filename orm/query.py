@@ -250,6 +250,8 @@ class Select(Expr, Parenthesizing):
     def __init__(self, what=None, sources=None,
                  where=None, order=None, limit=None):
         if what is None:
+            if sources is None:
+                raise TypeError('must specify sources if not specifying what')
             self.what = Sql('*')
         else:
             self.what = what if isinstance(what, Expr) else Expr(what)

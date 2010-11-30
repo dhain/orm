@@ -236,7 +236,13 @@ class TestLimit(SqlTestCase):
 
 class TestSelect(SqlTestCase):
     def test_select(self):
-        self.assertSqlEqual(Select(), 'select *')
+        self.assertSqlEqual(
+            Select(sources=Sql('some_table')),
+            'select * from some_table'
+        )
+
+    def test_no_what_no_sources_raises_typeerror(self):
+        self.assertRaises(TypeError, Select)
 
     def test_basic_value(self):
         self.assertSqlEqual(Select(1), 'select ?', (1,))
@@ -253,20 +259,20 @@ class TestSelect(SqlTestCase):
 
     def test_where(self):
         self.assertSqlEqual(
-            Select(where=Sql('some_condition')),
-            'select * where some_condition'
+            Select(Sql('1'), where=Sql('some_condition')),
+            'select 1 where some_condition'
         )
 
     def test_order(self):
         self.assertSqlEqual(
-            Select(order=Desc(Sql('some_column'))),
-            'select * order by some_column desc'
+            Select(Sql('1'), order=Desc(Sql('some_column'))),
+            'select 1 order by some_column desc'
         )
 
     def test_limit(self):
         self.assertSqlEqual(
-            Select(limit=Limit(2)),
-            'select * limit 2'
+            Select(Sql('1'), limit=Limit(2)),
+            'select 1 limit 2'
         )
 
     def test_order_by(self):
