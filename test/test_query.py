@@ -276,6 +276,19 @@ class TestSelect(SqlTestCase):
             (1,)
         )
 
+    def test_find(self):
+        q = Select(0).find(Sql('some_column') == 1, Expr(2) + 3)
+        self.assertSqlEqual(
+            q,
+            'select ? where (some_column = ?) and (? + ?)',
+            (0, 1, 2, 3)
+        )
+        self.assertSqlEqual(
+            q.find(Sql('other_column')),
+            'select ? where ((some_column = ?) and (? + ?)) and other_column',
+            (0, 1, 2, 3)
+        )
+
 
 if __name__ == "__main__":
     import sys

@@ -273,6 +273,15 @@ class Select(Expr, Parenthesizing):
             order = None
         return Select(self.what, self.sources, self.where, order, self.limit)
 
+    def find(self, where, *ands):
+        if not isinstance(where, Expr):
+            where = Expr(where)
+        if ands:
+            where = reduce(And, ands, where)
+        if self.where:
+            where = self.where & where
+        return Select(self.what, self.sources, where, self.order, self.limit)
+
     def sql(self):
         sql = 'select ' + self.what.sql()
         if self.sources is not None:
