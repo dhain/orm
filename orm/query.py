@@ -266,6 +266,13 @@ class Select(Expr, Parenthesizing):
         self.order = order
         self.limit = limit
 
+    def order_by(self, *args):
+        if args:
+            order = ExprList(args)
+        else:
+            order = None
+        return Select(self.what, self.sources, self.where, order, self.limit)
+
     def sql(self):
         sql = 'select ' + self.what.sql()
         if self.sources is not None:

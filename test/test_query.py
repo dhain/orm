@@ -269,6 +269,13 @@ class TestSelect(SqlTestCase):
             'select * limit 2'
         )
 
+    def test_order_by(self):
+        self.assertSqlEqual(
+            Select(1).order_by(Sql('some_column'), Desc(Sql('other_column'))),
+            'select ? order by some_column, other_column desc',
+            (1,)
+        )
+
 
 if __name__ == "__main__":
     import sys
