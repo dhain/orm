@@ -1,6 +1,10 @@
+import sys
 import unittest
 
-from .util import SqlTestCase, main
+from .util import *
+from .fakes import sqlite3
+
+from orm import connection
 
 from orm.query import *
 
@@ -235,6 +239,14 @@ class TestLimit(SqlTestCase):
 
 
 class TestSelect(SqlTestCase):
+    def setUp(self):
+        connection.sqlite3 = sqlite3
+        sqlite3.reset()
+        connection.reset()
+
+    def tearDown(self):
+        connection.sqlite3 = sys.modules['sqlite3']
+
     def test_select(self):
         self.assertSqlEqual(
             Select(sources=Sql('some_table')),
@@ -299,10 +311,40 @@ class TestSelect(SqlTestCase):
             (3,)
         )
 
+    def test_iter(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [('col1', 'col2')]
+        q = Select(sources=Sql('some_table'))
+        self.assertEqual(list(q), rows)
+        self.assertEqual(
+            connection.connection.statements,
+            [('select * from some_table', ())]
+        )
+
     def test_getitem_slice(self):
         self.assertSqlEqual(
             Select(Sql('1'))[:2],
             'select 1 limit 2'
+        )
+
+    def test_getitem_index(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [('row2',)]
+        q = Select(sources=Sql('some_table'))
+        self.assertEqual(q[1], rows[0])
+        self.assertEqual(
+            connection.connection.statements,
+            [('select * from some_table limit 1, 1', ())]
+        )
+
+    def test_getitem_index_indexerror(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = []
+        q = Select(sources=Sql('some_table'))
+        self.assertRaises(IndexError, q.__getitem__, 1)
+        self.assertEqual(
+            connection.connection.statements,
+            [('select * from some_table limit 1, 1', ())]
         )
 
     def test_order_by(self):

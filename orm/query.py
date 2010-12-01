@@ -1,3 +1,6 @@
+from . import connection
+
+
 binary_ops = [
     ('Eq', '=', '__eq__'),
     ('Ne', '!=', '__ne__'),
@@ -276,9 +279,22 @@ class Select(Expr, Parenthesizing):
             where = self.where & where
         return Select(self.what, self.sources, where, self.order, self.limit)
 
+    def __iter__(self):
+        cur = connection.get_connection().cursor()
+        cur.execute(self.sql(), self.args())
+        return iter(cur)
+
     def __getitem__(self, y):
-        return Select(self.what, self.sources,
-                      self.where, self.order, Limit(y))
+        q = Select(self.what, self.sources, self.where, self.order)
+        if isinstance(y, (int, long)):
+            q.limit = Limit(slice(y, y + 1))
+            try:
+                return iter(q).next()
+            except StopIteration:
+                raise IndexError(y)
+        else:
+            q.limit = Limit(y)
+            return q
 
     def sql(self):
         sql = 'select ' + self.what.sql()

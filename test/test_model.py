@@ -1,6 +1,6 @@
 import unittest
 
-from .util import SqlTestCase, main
+from .util import *
 
 from orm.model import *
 
