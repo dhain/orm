@@ -234,19 +234,19 @@ class Limit(Sql):
             limit_slice.stop < limit_slice.start
         ):
             raise ValueError('stop must be greater than start')
-        self.start = limit_slice.start
+        self.offset = limit_slice.start
         self.limit = (None if limit_slice.stop is None else (
             limit_slice.stop if limit_slice.start is None
             else limit_slice.stop - limit_slice.start))
 
     def sql(self):
-        if self.start is None and self.limit is None:
+        if self.offset is None and self.limit is None:
             return ''
-        if self.start is None:
+        if self.offset is None:
             return 'limit %d' % (self.limit,)
         if self.limit is None:
-            return 'limit %d, -1' % (self.start,)
-        return 'limit %d, %d' % (self.start, self.limit)
+            return 'limit %d, -1' % (self.offset,)
+        return 'limit %d, %d' % (self.offset, self.limit)
 
 
 class Select(Expr, Parenthesizing):
@@ -279,6 +279,26 @@ class Select(Expr, Parenthesizing):
             where = self.where & where
         return Select(self.what, self.sources, where, self.order, self.limit)
 
+    def exists(self):
+        q = Select(Sql('1'), self.sources, self.where, limit=Limit(1))
+        cur = connection.get_connection().cursor()
+        cur.execute(q.sql(), q.args())
+        return cur.fetchone() is not None
+
+    def __len__(self):
+        q = Select(Sql('count(*)'), self.sources, self.where)
+        cur = connection.get_connection().cursor()
+        cur.execute(q.sql(), q.args())
+        n = cur.fetchone()[0]
+        if self.limit is not None:
+            if self.limit.offset:
+                n -= self.limit.offset
+            if self.limit.limit is not None and n > self.limit.limit:
+                return self.limit.limit
+            if n < 0:
+                return 0
+        return n
+
     def __iter__(self):
         cur = connection.get_connection().cursor()
         cur.execute(self.sql(), self.args())
@@ -305,7 +325,9 @@ class Select(Expr, Parenthesizing):
         if self.order is not None:
             sql += ' order by ' + self.order.sql()
         if self.limit is not None:
-            sql += ' ' + self.limit.sql()
+            limit = self.limit.sql()
+            if limit:
+                sql += ' ' + limit
         return sql
 
     def args(self):

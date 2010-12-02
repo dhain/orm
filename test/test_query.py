@@ -311,6 +311,39 @@ class TestSelect(SqlTestCase):
             (3,)
         )
 
+    def test_exists(self):
+        connection.connect(':memory:')
+        q = Select(sources=Sql('some_table'))
+        self.assertFalse(q.exists())
+        self.assertEqual(
+            connection.connection.statements,
+            [('select 1 from some_table limit 1', ())]
+        )
+        connection.connection.rows = rows = [(1,)]
+        self.assertTrue(q.exists())
+
+    def test_len(self):
+        connection.connect(':memory:')
+        q = Select(sources=Sql('some_table'))
+        connection.connection.rows = [(0,)]
+        self.assertEqual(len(q), 0)
+        self.assertEqual(
+            connection.connection.statements,
+            [('select count(*) from some_table', ())]
+        )
+        connection.connection.rows = [(5,)]
+        self.assertEqual(len(q), 5)
+
+    def test_len_with_limit(self):
+        connection.connect(':memory:')
+        q = Select(sources=Sql('some_table'))
+        connection.connection.rows = [(5,)]
+        self.assertEqual(len(q[3:]), 2)
+        self.assertEqual(
+            connection.connection.statements,
+            [('select count(*) from some_table', ())]
+        )
+
     def test_iter(self):
         connection.connect(':memory:')
         connection.connection.rows = rows = [('col1', 'col2')]
@@ -318,13 +351,21 @@ class TestSelect(SqlTestCase):
         self.assertEqual(list(q), rows)
         self.assertEqual(
             connection.connection.statements,
-            [('select * from some_table', ())]
+            [
+                ('select * from some_table', ()),
+                # in cpython, list(x) calls len(x)
+                ('select count(*) from some_table', ()),
+            ]
         )
 
     def test_getitem_slice(self):
         self.assertSqlEqual(
             Select(Sql('1'))[:2],
             'select 1 limit 2'
+        )
+        self.assertSqlEqual(
+            Select(Sql('1'))[:],
+            'select 1'
         )
 
     def test_getitem_index(self):
