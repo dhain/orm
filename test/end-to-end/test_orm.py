@@ -61,6 +61,22 @@ class TestOrm(SqlTestCase):
         self.assertColumnEqual(obj.column1, 'row1_1')
         self.assertColumnEqual(obj.column2, 'row1_2')
 
+    def test_model_subclass(self):
+        class MyBase(orm.model.Model):
+            orm_table = 'test_table'
+            column1 = orm.model.Column()
+            column2 = orm.model.Column()
+        class NullColumn(orm.model.Column):
+            def sql(self):
+                return '1'
+        class MyModel(MyBase):
+            column3 = NullColumn()
+        obj = MyModel.find(MyModel.column1 == 'row1_1')[0]
+        self.assertTrue(isinstance(obj, MyModel))
+        self.assertColumnEqual(obj.column1, 'row1_1')
+        self.assertColumnEqual(obj.column2, 'row1_2')
+        self.assertColumnEqual(obj.column3, 1)
+
 
 if __name__ == "__main__":
     main(__name__)
