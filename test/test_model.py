@@ -16,8 +16,7 @@ class SomeModel(Model):
     column2 = Column('other_column')
 
 # column1, column2
-SomeModel.orm_columns = tuple(sorted(
-    SomeModel.orm_columns, key=lambda x: x.attr))
+SomeModel.orm_columns.sort(key=lambda x: x.attr)
 
 
 class TestColumn(SqlTestCase):
@@ -47,9 +46,10 @@ class TestColumn(SqlTestCase):
 
 class TestModel(SqlTestCase):
     def test_orm_columns(self):
-        self.assertEqual(
-            set(SomeModel.orm_columns),
-            set((SomeModel.column1, SomeModel.column2))
+        self.assertTrue(isinstance(SomeModel.orm_columns, ExprList))
+        self.assertItemsIdentical(
+            SomeModel.orm_columns,
+            (SomeModel.column1, SomeModel.column2)
         )
         self.assertEqual(SomeModel.column1.attr, 'column1')
         self.assertEqual(SomeModel.column1.model, SomeModel)
@@ -86,6 +86,15 @@ class TestModel(SqlTestCase):
             (1, 2, 3, 4)
         )
 
+    def test_alias(self):
+        a = SomeModel.as_alias('m')
+        self.assertTrue(issubclass(a, SomeModel))
+        self.assertSqlEqual(
+            a.find(),
+            'select "m"."some_column", "m"."other_column" '
+            'from "some_table" "m"'
+        )
+
 
 class TestModelSelect(SqlTestCase):
     def setUp(self):
@@ -108,6 +117,22 @@ class TestModelSelect(SqlTestCase):
             self.assertTrue(isinstance(obj, SomeModel))
             self.assertColumnEqual(obj.column1, row[0])
             self.assertColumnEqual(obj.column2, row[1])
+
+    def test_join(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2', 'row1_1', 'row1_2'),
+        ]
+        a1 = SomeModel.as_alias('m1')
+        a2 = SomeModel.as_alias('m2')
+        obj1, obj2 = ModelSelect(
+            a1.orm_columns + a2.orm_columns,
+            ExprList([a1, a2])
+        )[0]
+        for obj in (obj1, obj2):
+            self.assertTrue(isinstance(obj, SomeModel))
+            self.assertColumnEqual(obj.column1, 'row1_1')
+            self.assertColumnEqual(obj.column2, 'row1_2')
 
 
 if __name__ == "__main__":

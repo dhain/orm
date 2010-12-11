@@ -19,7 +19,7 @@ class Column(Expr):
         if not self.name:
             raise TypeError('column must have a name')
         if self.model:
-            return '%s."%s"' % (self.model.sql(), self.name)
+            return '%s."%s"' % (self.model.alias_sql(), self.name)
         return '"%s"' % (self.name,)
 
     def args(self):
@@ -28,12 +28,13 @@ class Column(Expr):
 
 class Model(object):
     orm_columns = ()
+    orm_alias = None
 
     class __metaclass__(type):
         def __init__(cls, name, bases, ns):
             if bases == (object,):
                 return
-            columns = []
+            cls.orm_columns = columns = ExprList()
             for base in bases:
                 for base_column in base.orm_columns:
                     column = base_column.__copy__()
@@ -50,7 +51,6 @@ class Model(object):
                         value.attr = attr
                     if not value.model:
                         value.model = cls
-            cls.orm_columns = tuple(columns)
 
     @classmethod
     def find(cls, *where):
@@ -60,7 +60,19 @@ class Model(object):
         return q
 
     @classmethod
+    def as_alias(cls, alias):
+        return type(cls.__name__, (cls,), dict(orm_alias=alias))
+
+    @classmethod
+    def alias_sql(cls):
+        if cls.orm_alias:
+            return '"%s"' % (cls.orm_alias,)
+        return cls.sql()
+
+    @classmethod
     def sql(cls):
+        if cls.orm_alias:
+            return '"%s" "%s"' % (cls.orm_table, cls.orm_alias)
         return '"%s"' % (cls.orm_table,)
 
     @classmethod
@@ -71,7 +83,11 @@ class Model(object):
 class ModelSelect(Select):
     def __iter__(self):
         for row in super(ModelSelect, self).__iter__():
-            obj = self.sources.__new__(self.sources)
+            res = []
+            indexes = {}
             for column, value in zip(self.what, row):
-                setattr(obj, column.attr, value)
-            yield obj
+                if column.model not in indexes:
+                    indexes[column.model] = len(res)
+                    res.append(column.model.__new__(column.model))
+                setattr(res[indexes[column.model]], column.attr, value)
+            yield res[0] if len(res) == 1 else tuple(res)
