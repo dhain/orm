@@ -58,8 +58,8 @@ class TestOrm(SqlTestCase):
             column2 = orm.model.Column()
         obj = MyModel.find(MyModel.column1 == 'row1_1')[0]
         self.assertTrue(isinstance(obj, MyModel))
-        self.assertEqual(obj.column1, 'row1_1')
-        self.assertEqual(obj.column2, 'row1_2')
+        self.assertColumnEqual(obj.column1, 'row1_1')
+        self.assertColumnEqual(obj.column2, 'row1_2')
 
 
 if __name__ == "__main__":

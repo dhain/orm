@@ -6,6 +6,12 @@ class SqlTestCase(unittest.TestCase):
         self.assertEqual(query.sql(), sql)
         self.assertEqual(query.args(), args)
 
+    def assertColumnEqual(self, column, value):
+        self.assertTrue(
+            (column == value) is True,
+            '%r != %r' % (column, value)
+        )
+
 
 def main(module_name):
     import sys

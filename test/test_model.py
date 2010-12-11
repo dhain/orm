@@ -106,8 +106,8 @@ class TestModelSelect(SqlTestCase):
         self.assertTrue(isinstance(q, ModelSelect))
         for row, obj in zip(rows, q):
             self.assertTrue(isinstance(obj, SomeModel))
-            self.assertEqual(obj.column1, row[0])
-            self.assertEqual(obj.column2, row[1])
+            self.assertColumnEqual(obj.column1, row[0])
+            self.assertColumnEqual(obj.column2, row[1])
 
 
 if __name__ == "__main__":
