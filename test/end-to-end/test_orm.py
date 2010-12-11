@@ -51,6 +51,16 @@ class TestOrm(SqlTestCase):
         q = orm.query.Select(sources=orm.query.Sql('test_table'))
         self.assertRaises(IndexError, q.__getitem__, 2)
 
+    def test_model(self):
+        class MyModel(orm.model.Model):
+            orm_table = 'test_table'
+            column1 = orm.model.Column()
+            column2 = orm.model.Column()
+        obj = MyModel.find(MyModel.column1 == 'row1_1')[0]
+        self.assertTrue(isinstance(obj, MyModel))
+        self.assertEqual(obj.column1, 'row1_1')
+        self.assertEqual(obj.column2, 'row1_2')
+
 
 if __name__ == "__main__":
     main(__name__)

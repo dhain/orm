@@ -368,6 +368,12 @@ class TestSelect(SqlTestCase):
             'select 1'
         )
 
+    def test_getitem_slice_type(self):
+        class MySelect(Select):
+            pass
+        q = MySelect(Sql('1'))
+        self.assertTrue(isinstance(q[0:1], MySelect))
+
     def test_getitem_index(self):
         connection.connect(':memory:')
         connection.connection.rows = rows = [('row2',)]
@@ -395,6 +401,12 @@ class TestSelect(SqlTestCase):
             (1,)
         )
 
+    def test_order_by_type(self):
+        class MySelect(Select):
+            pass
+        q = MySelect(Sql('1'))
+        self.assertTrue(isinstance(q.order_by(Sql('some_column')), MySelect))
+
     def test_find(self):
         q = Select(0).find(Sql('some_column') == 1, Expr(2) + 3)
         self.assertSqlEqual(
@@ -407,6 +419,12 @@ class TestSelect(SqlTestCase):
             'select ? where ((some_column = ?) and (? + ?)) and other_column',
             (0, 1, 2, 3)
         )
+
+    def test_find_type(self):
+        class MySelect(Select):
+            pass
+        q = MySelect(Sql('1'))
+        self.assertTrue(isinstance(q.find(Sql('1')), MySelect))
 
 
 if __name__ == "__main__":

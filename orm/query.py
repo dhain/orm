@@ -268,7 +268,8 @@ class Select(Expr, Parenthesizing):
             order = ExprList(args)
         else:
             order = None
-        return Select(self.what, self.sources, self.where, order, self.limit)
+        return type(self)(
+            self.what, self.sources, self.where, order, self.limit)
 
     def find(self, where, *ands):
         if not isinstance(where, Expr):
@@ -277,7 +278,8 @@ class Select(Expr, Parenthesizing):
             where = reduce(And, ands, where)
         if self.where:
             where = self.where & where
-        return Select(self.what, self.sources, where, self.order, self.limit)
+        return type(self)(
+            self.what, self.sources, where, self.order, self.limit)
 
     def exists(self):
         q = Select(Sql('1'), self.sources, self.where, limit=Limit(1))
@@ -305,7 +307,7 @@ class Select(Expr, Parenthesizing):
         return iter(cur)
 
     def __getitem__(self, y):
-        q = Select(self.what, self.sources, self.where, self.order)
+        q = type(self)(self.what, self.sources, self.where, self.order)
         if isinstance(y, (int, long)):
             q.limit = Limit(slice(y, y + 1))
             try:
