@@ -43,4 +43,5 @@ if __name__ == "__main__":
             elif os.path.isfile(test_path_path):
                 tests.extend(_load_tests_from_file(test_path_path))
     test_suite = unittest.TestSuite(tests)
-    unittest.TextTestRunner(verbosity=2).run(test_suite)
+    result = unittest.TextTestRunner(verbosity=2).run(test_suite)
+    sys.exit([1,0][result.wasSuccessful()])
