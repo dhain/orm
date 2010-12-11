@@ -15,6 +15,10 @@ class SomeModel(Model):
     column1 = Column('some_column')
     column2 = Column('other_column')
 
+# column1, column2
+SomeModel.orm_columns = tuple(sorted(
+    SomeModel.orm_columns, key=lambda x: x.attr))
+
 
 class TestColumn(SqlTestCase):
     def test_sql(self):
@@ -29,6 +33,16 @@ class TestColumn(SqlTestCase):
         self.assertSqlEqual(column, '"some_column"')
         column.model = SomeModel
         self.assertSqlEqual(column, '"some_table"."some_column"')
+
+    def test_copy(self):
+        attrs = 'name attr model'.split()
+        column1 = Column()
+        for attr in attrs:
+            setattr(column1, attr, object())
+        column2 = column1.__copy__()
+        self.assertFalse(column2 is column1)
+        for attr in attrs:
+            self.assertEqual(getattr(column2, attr), getattr(column1, attr))
 
 
 class TestModel(SqlTestCase):

@@ -9,6 +9,12 @@ class Column(Expr):
         self.attr = None
         self.model = None
 
+    def __copy__(self):
+        column = Column(self.name)
+        column.attr = self.attr
+        column.model = self.model
+        return column
+
     def sql(self):
         if not self.name:
             raise TypeError('column must have a name')
@@ -21,11 +27,20 @@ class Column(Expr):
 
 
 class Model(object):
+    orm_columns = ()
+
     class __metaclass__(type):
         def __init__(cls, name, bases, ns):
             if bases == (object,):
                 return
             columns = []
+            for base in bases:
+                for base_column in base.orm_columns:
+                    column = base_column.__copy__()
+                    column.model = cls
+                    assert column.attr is not None
+                    ns[column.attr] = column
+                    setattr(cls, column.attr, column)
             for attr, value in ns.iteritems():
                 if isinstance(value, Column):
                     columns.append(value)
@@ -35,8 +50,7 @@ class Model(object):
                         value.attr = attr
                     if not value.model:
                         value.model = cls
-            if 'orm_columns' not in ns:
-                cls.orm_columns = tuple(columns)
+            cls.orm_columns = tuple(columns)
 
     @classmethod
     def find(cls, *where):
