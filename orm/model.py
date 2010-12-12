@@ -26,6 +26,22 @@ class Column(Expr):
         return ()
 
 
+class ToOne(object):
+    def __init__(self, my_column, other_column):
+        self.my_column = my_column
+        self.other_column = other_column
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+        value = getattr(obj, self.my_column.attr)
+        q = self.other_column.model.find(self.other_column == value)
+        try:
+            return q[0]
+        except IndexError:
+            return None
+
+
 class Model(object):
     orm_columns = ()
     orm_alias = None

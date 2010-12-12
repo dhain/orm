@@ -11,6 +11,13 @@ class SomeModel(orm.model.Model):
     column2 = orm.model.Column()
 
 
+class OtherModel(orm.model.Model):
+    orm_table = 'other_table'
+    some_model_id = orm.model.Column('some_model')
+    some_model = orm.model.ToOne(some_model_id, SomeModel.column1)
+    column1 = orm.model.Column()
+
+
 class TestOrm(SqlTestCase):
     def setUp(self):
         self.db = orm.connection.connect(':memory:')
@@ -26,6 +33,15 @@ class TestOrm(SqlTestCase):
                     values ('row1_1', 'row1_2');
                 insert into test_table (column1, column2)
                     values ('row2_1', 'row2_2');
+
+                create table other_table (
+                    some_model text,
+                    column1 text
+                );
+                insert into other_table (some_model, column1)
+                    values ('row1_1', 'myrow1_1');
+                insert into other_table (some_model, column1)
+                    values ('row2_1', 'myrow2_1');
                 '''
             )
 
@@ -87,6 +103,18 @@ class TestOrm(SqlTestCase):
             self.assertTrue(isinstance(obj, SomeModel))
             self.assertColumnEqual(obj.column1, 'row1_1')
             self.assertColumnEqual(obj.column2, 'row1_2')
+
+    def test_to_one(self):
+        obj = OtherModel.find(OtherModel.column1 == 'myrow1_1')[0]
+        other = obj.some_model
+        self.assertTrue(isinstance(other, SomeModel))
+        self.assertColumnEqual(other.column1, 'row1_1')
+
+    def test_to_one_not_found(self):
+        obj = OtherModel.find(OtherModel.column1 == 'myrow1_1')[0]
+        obj.some_model_id = 'bogus_value'
+        other = obj.some_model
+        self.assertTrue(other is None)
 
 
 if __name__ == "__main__":

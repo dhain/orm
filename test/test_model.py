@@ -44,6 +44,41 @@ class TestColumn(SqlTestCase):
             self.assertEqual(getattr(column2, attr), getattr(column1, attr))
 
 
+class TestToOne(SqlTestCase):
+    def setUp(self):
+        connection.sqlite3 = sqlite3
+        sqlite3.reset()
+        connection.reset()
+
+    def tearDown(self):
+        connection.sqlite3 = sys.modules['sqlite3']
+
+    def test_get(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a1 = SomeModel.as_alias('m1')
+        a2 = SomeModel.as_alias('m2')
+        a1.a2 = t = ToOne(a1.column1, a2.column1)
+        self.assertTrue(a1.a2 is t)
+        obj = a1.find(a1.column1 == 'row1_1')[0].a2
+        self.assertTrue(isinstance(obj, a2))
+
+    def test_get_not_found(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a1 = SomeModel.as_alias('m1')
+        a2 = SomeModel.as_alias('m2')
+        a1.a2 = ToOne(a1.column1, a2.column1)
+        a1_obj = a1.find(a1.column1 == 'row1_1')[0]
+        connection.connection.rows = rows = []
+        a2_obj = a1_obj.a2
+        self.assertTrue(a2_obj is None)
+
+
 class TestModel(SqlTestCase):
     def test_orm_columns(self):
         self.assertTrue(isinstance(SomeModel.orm_columns, ExprList))
