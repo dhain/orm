@@ -79,6 +79,30 @@ class TestToOne(SqlTestCase):
         self.assertTrue(a2_obj is None)
 
 
+class TestToMany(SqlTestCase):
+    def setUp(self):
+        connection.sqlite3 = sqlite3
+        sqlite3.reset()
+        connection.reset()
+
+    def tearDown(self):
+        connection.sqlite3 = sys.modules['sqlite3']
+
+    def test_get(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a1 = SomeModel.as_alias('m1')
+        a2 = SomeModel.as_alias('m2')
+        a1.a2 = t = ToMany(a1.column1, a2.column1)
+        self.assertTrue(a1.a2 is t)
+        obj = a1.find(a1.column1 == 'row1_1')[0]
+        res = obj.a2
+        self.assertTrue(isinstance(res, ModelSelect))
+        self.assertTrue(isinstance(res[0], a2))
+
+
 class TestModel(SqlTestCase):
     def test_orm_columns(self):
         self.assertTrue(isinstance(SomeModel.orm_columns, ExprList))

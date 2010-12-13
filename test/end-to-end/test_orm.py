@@ -15,6 +15,7 @@ class OtherModel(orm.model.Model):
     orm_table = 'other_table'
     some_model_id = orm.model.Column('some_model')
     some_model = orm.model.ToOne(some_model_id, SomeModel.column1)
+    some_models = orm.model.ToMany(some_model_id, SomeModel.column1)
     column1 = orm.model.Column()
 
 
@@ -115,6 +116,14 @@ class TestOrm(SqlTestCase):
         obj.some_model_id = 'bogus_value'
         other = obj.some_model
         self.assertTrue(other is None)
+
+    def test_to_many(self):
+        obj = OtherModel.find(OtherModel.column1 == 'myrow1_1')[0]
+        others = obj.some_models
+        self.assertTrue(isinstance(others, orm.model.ModelSelect))
+        self.assertEqual(len(others), 1)
+        other = others[0]
+        self.assertColumnEqual(other.column1, 'row1_1')
 
 
 if __name__ == "__main__":
