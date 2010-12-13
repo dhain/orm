@@ -384,3 +384,35 @@ class Delete(Expr):
         if self.limit is not None:
             args.extend(self.limit.args())
         return tuple(args)
+
+
+class Insert(Expr):
+    def __init__(self, model, columns=None, values=None, on_conflict=None):
+        self.model = model
+        self.columns = columns
+        self.values = values
+        self.on_conflict = on_conflict
+
+    def sql(self):
+        sql = 'insert'
+        if self.on_conflict is not None:
+            sql += ' or ' + self.on_conflict
+        sql += ' into ' + self.model.sql()
+        if self.values is None:
+            sql += ' default values'
+            return sql
+        if self.columns is not None:
+            sql += ' (' + self.columns.sql() + ')'
+        if isinstance(self.values, Select):
+            sql += ' ' + self.values.sql()
+        else:
+            sql += ' values (' + self.values.sql() + ')'
+        return sql
+
+    def args(self):
+        args = list(self.model.args())
+        if self.columns is not None:
+            args.extend(self.columns.args())
+        if self.values is not None:
+            args.extend(self.values.args())
+        return tuple(args)

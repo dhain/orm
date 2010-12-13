@@ -522,5 +522,47 @@ class TestDelete(SqlTestCase):
         self.assertTrue(isinstance(q.order_by(Sql('some_column')), MyDelete))
 
 
+class TestInsert(SqlTestCase):
+    def test_insert(self):
+        q = Insert(
+            Sql('some_table'),
+            ExprList([Sql('some_column'), Sql('other_column')]),
+            ExprList([2, Sql('current_timestamp')])
+        )
+        self.assertSqlEqual(
+            q,
+            'insert into some_table (some_column, other_column) '
+            'values (?, current_timestamp)',
+            (2,)
+        )
+
+    def test_insert_default_values(self):
+        q = Insert(Sql('some_table'))
+        self.assertSqlEqual(q, 'insert into some_table default values')
+        q = Insert(Sql('some_table'), ExprList([Sql('some_column')]))
+        self.assertSqlEqual(q, 'insert into some_table default values')
+
+    def test_insert_from_select(self):
+        q = Insert(Sql('some_table'), values=Select(1))
+        self.assertSqlEqual(q, 'insert into some_table select ?', (1,))
+        q = Insert(
+            Sql('some_table'),
+            ExprList([Sql('some_column')]),
+            Select(1)
+        )
+        self.assertSqlEqual(
+            q,
+            'insert into some_table (some_column) select ?',
+            (1,)
+        )
+
+    def test_on_conflict(self):
+        q = Insert(Sql('some_table'), on_conflict='replace')
+        self.assertSqlEqual(
+            q,
+            'insert or replace into some_table default values'
+        )
+
+
 if __name__ == "__main__":
     main(__name__)

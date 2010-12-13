@@ -111,6 +111,18 @@ class TestOrm(SqlTestCase):
         cur.execute('select count(*) from person')
         self.assertEqual(cur.fetchone()[0], 0)
 
+    def test_insert(self):
+        q = orm.query.Insert(
+            orm.query.Sql('person'),
+            orm.query.Sql('name'),
+            orm.query.Expr('Knives')
+        )
+        with self.db:
+            q.execute()
+        cur = self.db.cursor()
+        cur.execute('select * from person where name=?', ('Knives',))
+        self.assertEqual(cur.fetchone(), (4, 'Knives', None))
+
     def test_model(self):
         scott = Person.find(Person.name == 'Scott')[0]
         self.assertTrue(isinstance(scott, Person))
