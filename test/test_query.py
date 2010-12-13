@@ -70,6 +70,23 @@ class TestExpr(SqlTestCase):
             self.assertTrue(res.value is expr)
 
 
+class TestExprExecute(unittest.TestCase):
+    def setUp(self):
+        connection.sqlite3 = sqlite3
+        sqlite3.reset()
+        connection.reset()
+
+    def tearDown(self):
+        connection.sqlite3 = sys.modules['sqlite3']
+
+    def test_execute(self):
+        db = connection.connect(':memory:')
+        q = Expr(1) + 2
+        cur = q.execute()
+        self.assertEqual(db.statements, [('? + ?', (1, 2))])
+        self.assertTrue(isinstance(cur, sqlite3.Cursor))
+
+
 class TestUnaryOps(SqlTestCase):
     def test_unary_ops(self):
         for class_name, op, method_name in prefix_unary_ops:

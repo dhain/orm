@@ -66,6 +66,11 @@ class Expr(object):
             return (self.value,)
         return args()
 
+    def execute(self):
+        cur = connection.get_connection().cursor()
+        cur.execute(self.sql(), self.args())
+        return cur
+
 
 class Parenthesizing(object):
     pass
@@ -283,15 +288,11 @@ class Select(Expr, Parenthesizing):
 
     def exists(self):
         q = Select(Sql('1'), self.sources, self.where, limit=Limit(1))
-        cur = connection.get_connection().cursor()
-        cur.execute(q.sql(), q.args())
-        return cur.fetchone() is not None
+        return q.execute().fetchone() is not None
 
     def __len__(self):
         q = Select(Sql('count(*)'), self.sources, self.where)
-        cur = connection.get_connection().cursor()
-        cur.execute(q.sql(), q.args())
-        n = cur.fetchone()[0]
+        n = q.execute().fetchone()[0]
         if self.limit is not None:
             if self.limit.offset:
                 n -= self.limit.offset
@@ -302,9 +303,7 @@ class Select(Expr, Parenthesizing):
         return n
 
     def __iter__(self):
-        cur = connection.get_connection().cursor()
-        cur.execute(self.sql(), self.args())
-        return iter(cur)
+        return iter(self.execute())
 
     def __getitem__(self, y):
         q = type(self)(self.what, self.sources, self.where, self.order)
