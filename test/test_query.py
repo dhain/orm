@@ -457,6 +457,21 @@ class TestSelect(SqlTestCase):
         q = MySelect(Sql('1'))
         self.assertTrue(isinstance(q.find(Sql('1')), MySelect))
 
+    def test_delete(self):
+        q = Select(
+            Sql('1'),
+            Sql('some_table'),
+            Sql('some_condition'),
+            Desc(Sql('some_column')),
+            Limit(2)
+        ).delete()
+        self.assertTrue(isinstance(q, Delete))
+        self.assertSqlEqual(
+            q,
+            'delete from some_table '
+            'where some_condition order by some_column desc limit 2'
+        )
+
 
 class TestDelete(SqlTestCase):
     def test_delete(self):
@@ -489,6 +504,22 @@ class TestDelete(SqlTestCase):
             Delete,
             ExprList([Sql('some_table'), Sql('other_table')])
         )
+
+    def test_order_by(self):
+        self.assertSqlEqual(
+            Delete(Expr(1)).order_by(
+                Sql('some_column'),
+                Desc(Sql('other_column'))
+            ),
+            'delete from ? order by some_column, other_column desc',
+            (1,)
+        )
+
+    def test_order_by_type(self):
+        class MyDelete(Delete):
+            pass
+        q = MyDelete(Sql('1'))
+        self.assertTrue(isinstance(q.order_by(Sql('some_column')), MyDelete))
 
 
 if __name__ == "__main__":

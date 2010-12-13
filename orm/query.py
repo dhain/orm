@@ -286,6 +286,9 @@ class Select(Expr, Parenthesizing):
         return type(self)(
             self.what, self.sources, where, self.order, self.limit)
 
+    def delete(self):
+        return Delete(self.sources, self.where, self.order, self.limit)
+
     def exists(self):
         q = Select(Sql('1'), self.sources, self.where, limit=Limit(1))
         return q.execute().fetchone() is not None
@@ -352,6 +355,13 @@ class Delete(Expr):
         self.where = where
         self.order = order
         self.limit = limit
+
+    def order_by(self, *args):
+        if args:
+            order = ExprList(args)
+        else:
+            order = None
+        return type(self)(self.sources, self.where, order, self.limit)
 
     def sql(self):
         sql = 'delete from ' + self.sources.sql()
