@@ -304,6 +304,20 @@ class TestSelect(SqlTestCase):
             'select 1 limit 2'
         )
 
+    def test_all_clauses(self):
+        q = Select(
+            Sql('1'),
+            Sql('some_table'),
+            Sql('some_condition'),
+            Desc(Sql('some_column')),
+            Limit(2)
+        )
+        self.assertSqlEqual(
+            q,
+            'select 1 from some_table '
+            'where some_condition order by some_column desc limit 2'
+        )
+
     def test_combined(self):
         self.assertSqlEqual(
             Select(
@@ -442,6 +456,39 @@ class TestSelect(SqlTestCase):
             pass
         q = MySelect(Sql('1'))
         self.assertTrue(isinstance(q.find(Sql('1')), MySelect))
+
+
+class TestDelete(SqlTestCase):
+    def test_delete(self):
+        q = Delete(Sql('some_table'))
+        self.assertSqlEqual(q, 'delete from some_table')
+
+    def test_where(self):
+        q = Delete(Sql('some_table'), Expr(1) == 2)
+        self.assertSqlEqual(q, 'delete from some_table where ? = ?', (1, 2))
+
+    def test_order(self):
+        q = Delete(Sql('some_table'), order=Expr(1))
+        self.assertSqlEqual(q, 'delete from some_table order by ?', (1,))
+
+    def test_limit(self):
+        q = Delete(Sql('some_table'), limit=Limit(1))
+        self.assertSqlEqual(q, 'delete from some_table limit 1')
+
+    def test_all_clauses(self):
+        q = Delete(Sql('some_table'), Expr(1) == 2, Expr(3), Limit(4))
+        self.assertSqlEqual(
+            q,
+            'delete from some_table where ? = ? order by ? limit 4',
+            (1, 2, 3)
+        )
+
+    def test_multiple_sources_raises_typeerror(self):
+        self.assertRaises(
+            TypeError,
+            Delete,
+            ExprList([Sql('some_table'), Sql('other_table')])
+        )
 
 
 if __name__ == "__main__":

@@ -342,3 +342,35 @@ class Select(Expr, Parenthesizing):
         if self.limit is not None:
             args.extend(self.limit.args())
         return tuple(args)
+
+
+class Delete(Expr):
+    def __init__(self, sources, where=None, order=None, limit=None):
+        if isinstance(sources, ExprList) and len(sources) > 1:
+            raise TypeError("can't delete from more than one table")
+        self.sources = sources
+        self.where = where
+        self.order = order
+        self.limit = limit
+
+    def sql(self):
+        sql = 'delete from ' + self.sources.sql()
+        if self.where is not None:
+            sql += ' where ' + self.where.sql()
+        if self.order is not None:
+            sql += ' order by ' + self.order.sql()
+        if self.limit is not None:
+            limit = self.limit.sql()
+            if limit:
+                sql += ' ' + limit
+        return sql
+
+    def args(self):
+        args = list(self.sources.args())
+        if self.where is not None:
+            args.extend(self.where.args())
+        if self.order is not None:
+            args.extend(self.order.args())
+        if self.limit is not None:
+            args.extend(self.limit.args())
+        return tuple(args)

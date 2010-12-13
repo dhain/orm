@@ -103,6 +103,14 @@ class TestOrm(SqlTestCase):
         q = orm.query.Select(sources=orm.query.Sql('person'))
         self.assertRaises(IndexError, q.__getitem__, 3)
 
+    def test_delete(self):
+        q = orm.query.Delete(orm.query.Sql('person'))
+        with self.db:
+            q.execute()
+        cur = self.db.cursor()
+        cur.execute('select count(*) from person')
+        self.assertEqual(cur.fetchone()[0], 0)
+
     def test_model(self):
         scott = Person.find(Person.name == 'Scott')[0]
         self.assertTrue(isinstance(scott, Person))
