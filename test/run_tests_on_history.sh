@@ -6,3 +6,4 @@ git rev-list --reverse HEAD | while read rev; do
     find . -name "*.pyc" -exec rm \{\} \;;
     python test/run_tests.py all;
 done
+[ $? -eq 0 ] && echo "All tests passed"
