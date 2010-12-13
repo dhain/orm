@@ -123,6 +123,19 @@ class TestOrm(SqlTestCase):
         cur.execute('select * from person where name=?', ('Knives',))
         self.assertEqual(cur.fetchone(), (4, 'Knives', None))
 
+    def test_update(self):
+        q = orm.query.Update(
+            orm.query.Sql('person'),
+            orm.query.ExprList([orm.query.Sql('company_id')]),
+            orm.query.ExprList([orm.query.Expr(2)]),
+            orm.query.Sql('name') == 'Guido'
+        )
+        with self.db:
+            q.execute()
+        cur = self.db.cursor()
+        cur.execute('select company_id from person where name=?', ('Guido',))
+        self.assertEqual(cur.fetchone()[0], 2)
+
     def test_model(self):
         scott = Person.find(Person.name == 'Scott')[0]
         self.assertTrue(isinstance(scott, Person))

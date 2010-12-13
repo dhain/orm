@@ -564,5 +564,34 @@ class TestInsert(SqlTestCase):
         )
 
 
+class TestUpdate(SqlTestCase):
+    def test_update(self):
+        q = Update(
+            Sql('some_table'),
+            ExprList([Sql('some_column'), Sql('other_column')]),
+            ExprList([2, Sql('current_timestamp')]),
+            Expr(1)
+        )
+        self.assertSqlEqual(
+            q,
+            'update some_table set '
+            'some_column=?, other_column=current_timestamp '
+            'where ?',
+            (2, 1)
+        )
+
+    def test_on_conflict(self):
+        q = Update(
+            Sql('some_table'),
+            ExprList([Sql('some_column')]),
+            ExprList([Sql('current_timestamp')]),
+            on_conflict='replace'
+        )
+        self.assertSqlEqual(
+            q,
+            'update or replace some_table set some_column=current_timestamp'
+        )
+
+
 if __name__ == "__main__":
     main(__name__)

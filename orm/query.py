@@ -416,3 +416,33 @@ class Insert(Expr):
         if self.values is not None:
             args.extend(self.values.args())
         return tuple(args)
+
+
+class Update(Expr):
+    def __init__(self, model, columns, values, where=None, on_conflict=None):
+        self.model = model
+        self.columns = columns
+        self.values = values
+        self.where = where
+        self.on_conflict = on_conflict
+
+    def sql(self):
+        sql = 'update'
+        if self.on_conflict is not None:
+            sql += ' or ' + self.on_conflict
+        sql += ' ' + self.model.sql()
+        sql += ' set ' + ExprList(
+            Sql('%s=%s' % (column.sql(), value.sql()))
+            for column, value in zip(self.columns, self.values)
+        ).sql()
+        if self.where is not None:
+            sql += ' where ' + self.where.sql()
+        return sql
+
+    def args(self):
+        args = list(self.model.args())
+        args.extend(self.columns.args())
+        args.extend(self.values.args())
+        if self.where is not None:
+            args.extend(self.where.args())
+        return tuple(args)
