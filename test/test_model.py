@@ -19,6 +19,12 @@ class SomeModel(Model):
 SomeModel.orm_columns.sort(key=lambda x: x.attr)
 
 
+class SomeModelSomeModel(Model):
+    orm_table = 'some_table_some_table'
+    m1_column1 = Column()
+    m2_column1 = Column()
+
+
 class TestColumn(SqlTestCase):
     def test_sql(self):
         column = Column('some_column')
@@ -42,6 +48,26 @@ class TestColumn(SqlTestCase):
         self.assertFalse(column2 is column1)
         for attr in attrs:
             self.assertEqual(getattr(column2, attr), getattr(column1, attr))
+
+
+class TestDereferenceColumn(SqlTestCase):
+    def test_dereference_column(self):
+        column = dereference_column('SomeModel.column1')
+        self.assertTrue(column is SomeModel.column1)
+
+    def test_dereference_column_unregistered_model(self):
+        self.assertRaises(
+            RuntimeError,
+            dereference_column,
+            'BogusModel.column'
+        )
+
+    def test_dereference_column_undefined_column(self):
+        self.assertRaises(
+            RuntimeError,
+            dereference_column,
+            'SomeModel.bogus_column'
+        )
 
 
 class TestToOne(SqlTestCase):
@@ -78,6 +104,18 @@ class TestToOne(SqlTestCase):
         a2_obj = a1_obj.a2
         self.assertTrue(a2_obj is None)
 
+    def test_dereference_other_column(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        class MyModel(Model):
+            orm_table = 'my_table'
+            my_id = Column()
+            some_model = ToOne(my_id, 'SomeModel.column1')
+        obj = MyModel()
+        self.assertTrue(isinstance(obj.some_model, SomeModel))
+
 
 class TestToMany(SqlTestCase):
     def setUp(self):
@@ -101,6 +139,90 @@ class TestToMany(SqlTestCase):
         res = obj.a2
         self.assertTrue(isinstance(res, ModelSelect))
         self.assertTrue(isinstance(res[0], a2))
+
+    def test_dereference_other_column(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        class MyModel(Model):
+            orm_table = 'my_table'
+            my_id = Column()
+            some_models = ToMany(my_id, 'SomeModel.column1')
+        obj = MyModel()
+        self.assertTrue(isinstance(obj.some_models[0], SomeModel))
+
+
+class TestManyToMany(SqlTestCase):
+    def setUp(self):
+        connection.sqlite3 = sqlite3
+        sqlite3.reset()
+        connection.reset()
+
+    def tearDown(self):
+        connection.sqlite3 = sys.modules['sqlite3']
+
+    def test_get(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a1 = SomeModel.as_alias('m1')
+        a2 = SomeModel.as_alias('m2')
+        a1.a2 = t = ManyToMany(
+            a1.column1, SomeModelSomeModel.m1_column1,
+            SomeModelSomeModel.m2_column1, a2.column1
+        )
+        self.assertTrue(a1.a2 is t)
+        obj = a1.find(a1.column1 == 'row1_1')[0]
+        res = obj.a2
+        self.assertTrue(isinstance(res, ModelSelect))
+        self.assertTrue(isinstance(res[0], a2))
+
+    def test_dereference_my_join(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        class MyModel(Model):
+            orm_table = 'my_table'
+            my_id = Column()
+            some_models = ManyToMany(
+                my_id, 'SomeModelSomeModel.m1_column1',
+                SomeModelSomeModel.m2_column1, SomeModel.column1
+            )
+        obj = MyModel()
+        self.assertTrue(isinstance(obj.some_models[0], SomeModel))
+
+    def test_dereference_other_join(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        class MyModel(Model):
+            orm_table = 'my_table'
+            my_id = Column()
+            some_models = ManyToMany(
+                my_id, SomeModelSomeModel.m1_column1,
+                'SomeModelSomeModel.m2_column1', SomeModel.column1
+            )
+        obj = MyModel()
+        self.assertTrue(isinstance(obj.some_models[0], SomeModel))
+
+    def test_dereference_other_column(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        class MyModel(Model):
+            orm_table = 'my_table'
+            my_id = Column()
+            some_models = ManyToMany(
+                my_id, SomeModelSomeModel.m1_column1,
+                SomeModelSomeModel.m2_column1, 'SomeModel.column1'
+            )
+        obj = MyModel()
+        self.assertTrue(isinstance(obj.some_models[0], SomeModel))
 
 
 class TestModel(SqlTestCase):

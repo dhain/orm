@@ -3,6 +3,19 @@ import re
 from .query import Expr, ExprList, Sql, Select
 
 
+REGISTERED_MODELS = {}
+
+
+def dereference_column(name):
+    model_name, column_attr = name.split('.', 1)
+    try:
+        return getattr(REGISTERED_MODELS[model_name], column_attr)
+    except KeyError:
+        raise RuntimeError('unknown model %r' % (model_name,))
+    except AttributeError:
+        raise RuntimeError('unknown column %r' % (name,))
+
+
 class Column(Expr):
     def __init__(self, name=None):
         self.name = name
@@ -31,9 +44,14 @@ class ToOne(object):
         self.my_column = my_column
         self.other_column = other_column
 
+    def _dereference(self):
+        if isinstance(self.other_column, basestring):
+            self.other_column = dereference_column(self.other_column)
+
     def __get__(self, obj, cls):
         if obj is None:
             return self
+        self._dereference()
         value = getattr(obj, self.my_column.attr)
         q = self.other_column.model.find(self.other_column == value)
         try:
@@ -47,11 +65,44 @@ class ToMany(object):
         self.my_column = my_column
         self.other_column = other_column
 
+    def _dereference(self):
+        if isinstance(self.other_column, basestring):
+            self.other_column = dereference_column(self.other_column)
+
     def __get__(self, obj, cls):
         if obj is None:
             return self
+        self._dereference()
         value = getattr(obj, self.my_column.attr)
         return self.other_column.model.find(self.other_column == value)
+
+
+class ManyToMany(object):
+    def __init__(self, my_column, my_join, other_join, other_column):
+        self.my_column = my_column
+        self.my_join = my_join
+        self.other_join = other_join
+        self.other_column = other_column
+
+    def _dereference(self):
+        if isinstance(self.my_join, basestring):
+            self.my_join = dereference_column(self.my_join)
+        if isinstance(self.other_join, basestring):
+            self.other_join = dereference_column(self.other_join)
+        if isinstance(self.other_column, basestring):
+            self.other_column = dereference_column(self.other_column)
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+        self._dereference()
+        value = getattr(obj, self.my_column.attr)
+        q = self.other_column.model.find(
+            self.my_join == value,
+            self.other_join == self.other_column
+        )
+        q.sources = ExprList([self.other_column.model, self.other_join.model])
+        return q
 
 
 class Model(object):
@@ -79,6 +130,7 @@ class Model(object):
                         value.attr = attr
                     if not value.model:
                         value.model = cls
+            REGISTERED_MODELS[name] = cls
 
     @classmethod
     def find(cls, *where):
@@ -89,7 +141,11 @@ class Model(object):
 
     @classmethod
     def as_alias(cls, alias):
-        return type(cls.__name__, (cls,), dict(orm_alias=alias))
+        return type(
+            '%s_as_%s' % (cls.__name__, alias),
+            (cls,),
+            dict(orm_alias=alias)
+        )
 
     @classmethod
     def alias_sql(cls):
