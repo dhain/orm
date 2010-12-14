@@ -288,6 +288,72 @@ class TestModel(SqlTestCase):
         )
 
 
+class TestModelActions(SqlTestCase):
+    def setUp(self):
+        connection.sqlite3 = sqlite3
+        sqlite3.reset()
+        connection.reset()
+
+    def tearDown(self):
+        connection.sqlite3 = sys.modules['sqlite3']
+
+    def test_save_insert(self):
+        db = connection.connect(':memory:')
+        obj = SomeModel()
+        obj.column1 = 'hello'
+        obj.column2 = 'world'
+        obj.save()
+        self.assertFalse(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {})
+        self.assertEqual(db.statements, [
+            (
+                'insert into "some_table" '
+                '("some_column", "other_column") values (?, ?)',
+                ('hello', 'world')
+            ),
+        ])
+
+    def test_save_insert_default_values(self):
+        db = connection.connect(':memory:')
+        obj = SomeModel()
+        obj.save()
+        self.assertFalse(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {})
+        self.assertEqual(db.statements, [
+            ('insert into "some_table" default values', ()),
+        ])
+
+    def test_save_update(self):
+        db = connection.connect(':memory:')
+        obj = SomeModel()
+        obj.orm_new = False
+        obj.__dict__['column1'] = 'old1'
+        obj.__dict__['column2'] = 'old2'
+        obj.column1 = 'hello'
+        obj.column2 = 'world'
+        obj.save()
+        self.assertFalse(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {})
+        self.assertEqual(db.statements, [
+            (
+                'update "some_table" set '
+                '"some_column" = ?, "other_column" = ? '
+                'where ("some_table"."some_column" = ?) '
+                'and ("some_table"."other_column" = ?)',
+                ('hello', 'world', 'old1', 'old2')
+            ),
+        ])
+
+    def test_save_update_no_dirty(self):
+        db = connection.connect(':memory:')
+        obj = SomeModel()
+        obj.orm_new = False
+        obj.save()
+        self.assertFalse(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {})
+        self.assertEqual(db.statements, [])
+
+
 class TestModelSelect(SqlTestCase):
     def setUp(self):
         connection.sqlite3 = sqlite3
@@ -307,6 +373,7 @@ class TestModelSelect(SqlTestCase):
         self.assertTrue(isinstance(q, ModelSelect))
         for row, obj in zip(rows, q):
             self.assertTrue(isinstance(obj, SomeModel))
+            self.assertFalse(obj.orm_new)
             self.assertEqual(obj.orm_dirty, {})
             self.assertColumnEqual(obj.column1, row[0])
             self.assertColumnEqual(obj.column2, row[1])

@@ -583,7 +583,7 @@ class TestUpdate(SqlTestCase):
         self.assertSqlEqual(
             q,
             'update some_table set '
-            'some_column=?, other_column=current_timestamp '
+            'some_column = ?, other_column = current_timestamp '
             'where ?',
             (2, 1)
         )
@@ -597,7 +597,7 @@ class TestUpdate(SqlTestCase):
         )
         self.assertSqlEqual(
             q,
-            'update or replace some_table set some_column=current_timestamp'
+            'update or replace some_table set some_column = current_timestamp'
         )
 
 

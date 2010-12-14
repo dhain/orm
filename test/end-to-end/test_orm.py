@@ -149,6 +149,25 @@ class TestOrm(SqlTestCase):
         self.assertColumnEqual(ramona.name, 'Ramona')
         self.assertColumnEqual(ramona.company_id, 1)
 
+    def test_model_insert(self):
+        knives = Person()
+        knives.name = 'Knives'
+        with self.db:
+            knives.save()
+        cur = self.db.cursor()
+        cur.execute('select * from person where name=?', ('Knives',))
+        self.assertEqual(cur.fetchone(), (4, 'Knives', None))
+
+    def test_model_update(self):
+        guido = Employee.find(Employee.name == 'Guido')[0]
+        google = Company.find(Company.name == 'Google')[0]
+        guido.company_id = google.company_id
+        with self.db:
+            guido.save()
+        cur = self.db.cursor()
+        cur.execute('select company_id from person where name=?', ('Guido',))
+        self.assertEqual(cur.fetchone()[0], google.company_id)
+
     def test_join(self):
         a1 = Person.as_alias('m1')
         a2 = Person.as_alias('m2')

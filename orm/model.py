@@ -1,6 +1,10 @@
 import re
 
-from .query import Expr, ExprList, Sql, Select
+from .query import *
+
+
+all_ignore = set(locals())
+all_ignore.add('all_ignore')
 
 
 REGISTERED_MODELS = {}
@@ -112,6 +116,7 @@ class ManyToMany(object):
 
 
 class Model(object):
+    orm_new = True
     orm_columns = ()
     orm_alias = None
 
@@ -142,6 +147,43 @@ class Model(object):
         self = super(Model, cls).__new__(cls)
         self.orm_dirty = {}
         return self
+
+    def save(self):
+        if not (self.orm_new or self.orm_dirty):
+            return
+        if self.orm_new:
+            q = Insert(
+                self,
+                ExprList(
+                    Sql('"%s"' % (column.name,))
+                    for column in self.orm_dirty
+                ) or None,
+                ExprList(
+                    getattr(self, column.attr)
+                    for column in self.orm_dirty
+                ) or None
+            )
+        else:
+            where = reduce(And, (
+                column == self.orm_dirty.get(
+                    column, getattr(self, column.attr))
+                for column in self.orm_columns
+            ))
+            q = Update(
+                self,
+                ExprList(
+                    Sql('"%s"' % (column.name,))
+                    for column in self.orm_dirty
+                ),
+                ExprList(
+                    getattr(self, column.attr)
+                    for column in self.orm_dirty
+                ),
+                where
+            )
+        q.execute()
+        self.orm_new = False
+        self.orm_dirty.clear()
 
     @classmethod
     def find(cls, *where):
@@ -184,5 +226,9 @@ class ModelSelect(Select):
                 if column.model not in indexes:
                     indexes[column.model] = len(res)
                     res.append(column.model.__new__(column.model))
+                    res[-1].orm_new = False
                 res[indexes[column.model]].__dict__[column.attr] = value
             yield res[0] if len(res) == 1 else tuple(res)
+
+
+__all__ = list(set(locals()) - all_ignore)

@@ -442,7 +442,7 @@ class Update(Expr):
             sql += ' or ' + self.on_conflict
         sql += ' ' + self.model.sql()
         sql += ' set ' + ExprList(
-            Sql('%s=%s' % (column.sql(), value.sql()))
+            Sql('%s = %s' % (column.sql(), value.sql()))
             for column, value in zip(self.columns, self.values)
         ).sql()
         if self.where is not None:
