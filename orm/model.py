@@ -17,6 +17,8 @@ def dereference_column(name):
 
 
 class Column(Expr):
+    no_value = object()
+
     def __init__(self, name=None):
         self.name = name
         self.attr = None
@@ -27,6 +29,10 @@ class Column(Expr):
         column.attr = self.attr
         column.model = self.model
         return column
+
+    def __set__(self, obj, value):
+        obj.orm_dirty[self] = obj.__dict__.get(self.attr, Column.no_value)
+        obj.__dict__[self.attr] = value
 
     def sql(self):
         if not self.name:
@@ -132,6 +138,11 @@ class Model(object):
                         value.model = cls
             REGISTERED_MODELS[name] = cls
 
+    def __new__(cls, *args, **kwargs):
+        self = super(Model, cls).__new__(cls)
+        self.orm_dirty = {}
+        return self
+
     @classmethod
     def find(cls, *where):
         q = ModelSelect(ExprList(cls.orm_columns), cls)
@@ -173,5 +184,5 @@ class ModelSelect(Select):
                 if column.model not in indexes:
                     indexes[column.model] = len(res)
                     res.append(column.model.__new__(column.model))
-                setattr(res[indexes[column.model]], column.attr, value)
+                res[indexes[column.model]].__dict__[column.attr] = value
             yield res[0] if len(res) == 1 else tuple(res)

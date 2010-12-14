@@ -49,6 +49,17 @@ class TestColumn(SqlTestCase):
         for attr in attrs:
             self.assertEqual(getattr(column2, attr), getattr(column1, attr))
 
+    def test_set(self):
+        class A(object):
+            def __init__(self):
+                self.orm_dirty = {}
+        a = A()
+        col = Column()
+        col.attr = 'x'
+        col.__set__(a, 1)
+        self.assertEqual(a.x, 1)
+        self.assertEqual(a.orm_dirty, {col: Column.no_value})
+
 
 class TestDereferenceColumn(SqlTestCase):
     def test_dereference_column(self):
@@ -296,6 +307,7 @@ class TestModelSelect(SqlTestCase):
         self.assertTrue(isinstance(q, ModelSelect))
         for row, obj in zip(rows, q):
             self.assertTrue(isinstance(obj, SomeModel))
+            self.assertEqual(obj.orm_dirty, {})
             self.assertColumnEqual(obj.column1, row[0])
             self.assertColumnEqual(obj.column2, row[1])
 
