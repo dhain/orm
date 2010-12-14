@@ -12,11 +12,15 @@ from orm.model import *
 
 class SomeModel(Model):
     orm_table = 'some_table'
-    column1 = Column('some_column')
+    column1 = Column('some_column', primary=True)
     column2 = Column('other_column')
 
 # column1, column2
 SomeModel.orm_columns.sort(key=lambda x: x.attr)
+
+
+class SomeSubclass(SomeModel):
+    column3 = Column('third_column', primary=True)
 
 
 class SomeModelSomeModel(Model):
@@ -40,7 +44,7 @@ class TestColumn(SqlTestCase):
         self.assertSqlEqual(column, '"some_table"."some_column"')
 
     def test_copy(self):
-        attrs = 'name attr model'.split()
+        attrs = 'name attr model primary'.split()
         column1 = Column()
         for attr in attrs:
             setattr(column1, attr, object())
@@ -246,6 +250,13 @@ class TestModel(SqlTestCase):
         self.assertEqual(SomeModel.column1.attr, 'column1')
         self.assertEqual(SomeModel.column1.model, SomeModel)
 
+    def test_orm_primaries(self):
+        self.assertTrue(isinstance(SomeModel.orm_primaries, ExprList))
+        self.assertItemsIdentical(
+            SomeModel.orm_primaries,
+            (SomeModel.column1,)
+        )
+
     def test_sql(self):
         self.assertSqlEqual(
             SomeModel,
@@ -288,6 +299,25 @@ class TestModel(SqlTestCase):
         )
 
 
+class TestModelSubclass(SqlTestCase):
+    def test_orm_columns(self):
+        self.assertTrue(isinstance(SomeSubclass.orm_columns, ExprList))
+        print [(c.model, c.name) for c in SomeSubclass.orm_columns]
+        self.assertItemsIdentical(
+            SomeSubclass.orm_columns,
+            (SomeSubclass.column1, SomeSubclass.column2, SomeSubclass.column3)
+        )
+        self.assertEqual(SomeSubclass.column1.attr, 'column1')
+        self.assertEqual(SomeSubclass.column1.model, SomeSubclass)
+
+    def test_orm_primaries(self):
+        self.assertTrue(isinstance(SomeSubclass.orm_primaries, ExprList))
+        self.assertItemsIdentical(
+            SomeSubclass.orm_primaries,
+            (SomeSubclass.column1, SomeSubclass.column3)
+        )
+
+
 class TestModelActions(SqlTestCase):
     def setUp(self):
         connection.sqlite3 = sqlite3
@@ -326,6 +356,28 @@ class TestModelActions(SqlTestCase):
     def test_save_update(self):
         db = connection.connect(':memory:')
         obj = SomeModel()
+        obj.orm_new = False
+        obj.__dict__['column1'] = 'old1'
+        obj.__dict__['column2'] = 'old2'
+        obj.column1 = 'hello'
+        obj.column2 = 'world'
+        obj.save()
+        self.assertFalse(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {})
+        self.assertEqual(db.statements, [
+            (
+                'update "some_table" set '
+                '"some_column" = ?, "other_column" = ? '
+                'where "some_table"."some_column" = ?',
+                ('hello', 'world', 'old1')
+            ),
+        ])
+
+    def test_save_update_no_primaries(self):
+        db = connection.connect(':memory:')
+        no_primaries = type('SomeModel', (SomeModel,), {})
+        no_primaries.orm_primaries = ExprList()
+        obj = no_primaries()
         obj.orm_new = False
         obj.__dict__['column1'] = 'old1'
         obj.__dict__['column2'] = 'old2'

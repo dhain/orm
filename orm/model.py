@@ -23,15 +23,17 @@ def dereference_column(name):
 class Column(Expr):
     no_value = object()
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, primary=False):
         self.name = name
         self.attr = None
         self.model = None
+        self.primary = primary
 
     def __copy__(self):
         column = Column(self.name)
         column.attr = self.attr
         column.model = self.model
+        column.primary = self.primary
         return column
 
     def __set__(self, obj, value):
@@ -118,6 +120,7 @@ class ManyToMany(object):
 class Model(object):
     orm_new = True
     orm_columns = ()
+    orm_primaries = ()
     orm_alias = None
 
     class __metaclass__(type):
@@ -125,13 +128,16 @@ class Model(object):
             if bases == (object,):
                 return
             cls.orm_columns = columns = ExprList()
+            cls.orm_primaries = primaries = ExprList()
             for base in bases:
                 for base_column in base.orm_columns:
                     column = base_column.__copy__()
                     column.model = cls
                     assert column.attr is not None
-                    ns[column.attr] = column
                     setattr(cls, column.attr, column)
+                    columns.append(column)
+                    if column.primary:
+                        primaries.append(column)
             for attr, value in ns.iteritems():
                 if isinstance(value, Column):
                     columns.append(value)
@@ -141,6 +147,8 @@ class Model(object):
                         value.attr = attr
                     if not value.model:
                         value.model = cls
+                    if value.primary:
+                        primaries.append(value)
             REGISTERED_MODELS[name] = cls
 
     def __new__(cls, *args, **kwargs):
@@ -167,7 +175,7 @@ class Model(object):
             where = reduce(And, (
                 column == self.orm_dirty.get(
                     column, getattr(self, column.attr))
-                for column in self.orm_columns
+                for column in self.orm_primaries or self.orm_columns
             ))
             q = Update(
                 self,
