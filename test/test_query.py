@@ -69,6 +69,14 @@ class TestExpr(SqlTestCase):
             self.assertTrue(isinstance(res, cls))
             self.assertTrue(res.value is expr)
 
+    def test_eq_null(self):
+        expr = (Expr(1) == None)
+        self.assertTrue(isinstance(expr, IsNull))
+
+    def test_ne_null(self):
+        expr = (Expr(1) != None)
+        self.assertTrue(isinstance(expr, NotNull))
+
 
 class TestExprExecute(unittest.TestCase):
     def setUp(self):

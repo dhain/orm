@@ -45,12 +45,22 @@ class Expr(object):
         ''' % (method_name, class_name)).strip()
     del class_name, op, method_name
 
-    for class_name, op, method_name in binary_ops:
+    for class_name, op, method_name in binary_ops[2:]:
         exec ('''
             def %s(self, other):
                 return %s(self, other)
         ''' % (method_name, class_name)).strip()
     del class_name, op, method_name
+
+    def __eq__(self, other):
+        if other is None:
+            return IsNull(self)
+        return Eq(self, other)
+
+    def __ne__(self, other):
+        if other is None:
+            return NotNull(self)
+        return Ne(self, other)
 
     def sql(self):
         try:
