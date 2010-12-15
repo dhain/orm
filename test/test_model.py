@@ -64,6 +64,20 @@ class TestColumn(SqlTestCase):
         self.assertEqual(a.x, 1)
         self.assertEqual(a.orm_dirty, {col: Column.no_value})
 
+    def test_del(self):
+        class A(object):
+            col = Column()
+            def __init__(self):
+                self.orm_dirty = {}
+        a = A()
+        a.col = 1
+        def del_col():
+            del a.col
+        self.assertRaises(
+            AttributeError,
+            del_col
+        )
+
 
 class TestDereferenceColumn(SqlTestCase):
     def test_dereference_column(self):
@@ -297,12 +311,13 @@ class TestModel(SqlTestCase):
             'select "m"."some_column", "m"."other_column" '
             'from "some_table" "m"'
         )
+        self.assertTrue(REGISTERED_MODELS['SomeModel'] is SomeModel)
+        self.assertTrue(REGISTERED_MODELS['SomeModel_as_m'] is a)
 
 
 class TestModelSubclass(SqlTestCase):
     def test_orm_columns(self):
         self.assertTrue(isinstance(SomeSubclass.orm_columns, ExprList))
-        print [(c.model, c.name) for c in SomeSubclass.orm_columns]
         self.assertItemsIdentical(
             SomeSubclass.orm_columns,
             (SomeSubclass.column1, SomeSubclass.column2, SomeSubclass.column3)
@@ -375,7 +390,7 @@ class TestModelActions(SqlTestCase):
 
     def test_save_update_no_primaries(self):
         db = connection.connect(':memory:')
-        no_primaries = type('SomeModel', (SomeModel,), {})
+        no_primaries = type('SomeModelNoPrimaries', (SomeModel,), {})
         no_primaries.orm_primaries = ExprList()
         obj = no_primaries()
         obj.orm_new = False
