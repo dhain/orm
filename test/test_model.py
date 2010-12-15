@@ -133,6 +133,37 @@ class TestToOne(SqlTestCase):
         a2_obj = a1_obj.a2
         self.assertTrue(a2_obj is None)
 
+    def test_set(self):
+        connection.connect(':memory:')
+        a1 = SomeModel.as_alias('m1')
+        a2 = SomeModel.as_alias('m2')
+        a1.a2 = ToOne(a1.column1, a2.column1)
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        obj1 = a1.find()[0]
+        connection.connection.rows = rows = [
+            ('row2_1', 'row2_2'),
+        ]
+        obj2 = a2.find()[0]
+        obj1.a2 = obj2
+        self.assertColumnEqual(obj1.column1, 'row2_1')
+
+    def test_del(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a = SomeModel.as_alias('m')
+        a.a = ToOne(a.column1, a.column1)
+        obj = a.find()[0]
+        def del_col():
+            del obj.a
+        self.assertRaises(
+            AttributeError,
+            del_col
+        )
+
     def test_dereference_other_column(self):
         connection.connect(':memory:')
         connection.connection.rows = rows = [
@@ -144,6 +175,20 @@ class TestToOne(SqlTestCase):
             some_model = ToOne(my_id, 'SomeModel.column1')
         obj = MyModel()
         self.assertTrue(isinstance(obj.some_model, SomeModel))
+
+    def test_dereference_other_column_set(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        class MyModel(Model):
+            orm_table = 'my_table'
+            my_id = Column()
+            some_model = ToOne(my_id, 'SomeModel.column1')
+        obj = MyModel()
+        obj.some_model = SomeModel()
+        other_column = obj.__class__.__dict__['some_model'].other_column
+        self.assertTrue(other_column is SomeModel.column1)
 
 
 class TestToMany(SqlTestCase):

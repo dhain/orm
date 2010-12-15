@@ -192,6 +192,12 @@ class TestOrm(SqlTestCase):
         bogus = scott.company
         self.assertTrue(bogus is None)
 
+    def test_to_one_set(self):
+        guido = Employee.find(Employee.name == 'Guido')[0]
+        google = Company.find(Company.name == 'Google')[0]
+        guido.company = google
+        self.assertColumnEqual(guido.company_id, google.company_id)
+
     def test_to_many(self):
         amazon = Company.find(Company.name == 'Amazon.ca')[0]
         employees = amazon.employees

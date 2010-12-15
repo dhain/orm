@@ -71,6 +71,11 @@ class ToOne(object):
         except IndexError:
             return None
 
+    def __set__(self, obj, other):
+        self._dereference()
+        value = getattr(other, self.other_column.attr)
+        setattr(obj, self.my_column.attr, value)
+
 
 class ToMany(object):
     def __init__(self, my_column, other_column):
