@@ -550,6 +550,14 @@ class TestInsert(SqlTestCase):
         q = Insert(Sql('some_table'), ExprList([Sql('some_column')]))
         self.assertSqlEqual(q, 'insert into some_table default values')
 
+    def test_insert_values_without_columns_raises_typeerror(self):
+        self.assertRaises(
+            TypeError,
+            Insert,
+            Sql('some_table'),
+            values=ExprList([1, 2, 3])
+        )
+
     def test_insert_from_select(self):
         q = Insert(Sql('some_table'), values=Select(1))
         self.assertSqlEqual(q, 'insert into some_table select ?', (1,))

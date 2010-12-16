@@ -399,6 +399,10 @@ class Delete(Expr):
 class Insert(Expr):
     def __init__(self, model, columns=None, values=None, on_conflict=None):
         self.model = model
+        if columns is None and values is not None:
+            if not isinstance(values, Select):
+                raise TypeError(
+                    'must specify columns when values is not a Select')
         self.columns = columns
         self.values = values
         self.on_conflict = on_conflict
