@@ -14,6 +14,10 @@ class Cursor(object):
         self.connection.statements.append((sql, args))
         self.rows = self.connection.rows
 
+    def executemany(self, sql, args):
+        self.connection.many_statements.append((sql, args))
+        self.rows = self.connection.rows
+
     def fetchone(self):
         if self.rows:
             return self.rows[0]
@@ -27,6 +31,7 @@ class Connection(object):
         self.path = path
         self.rows = []
         self.statements = []
+        self.many_statements = []
 
     def cursor(self):
         return Cursor(self)

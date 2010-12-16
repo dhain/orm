@@ -81,6 +81,11 @@ class Expr(object):
         cur.execute(self.sql(), self.args())
         return cur
 
+    def executemany(self, args):
+        cur = connection.get_connection().cursor()
+        cur.executemany(self.sql(), args)
+        return cur
+
 
 class Parenthesizing(object):
     pass

@@ -94,6 +94,13 @@ class TestExprExecute(unittest.TestCase):
         self.assertEqual(db.statements, [('? + ?', (1, 2))])
         self.assertTrue(isinstance(cur, sqlite3.Cursor))
 
+    def test_executemany(self):
+        db = connection.connect(':memory:')
+        q = Expr(1) + 2
+        cur = q.executemany([(1, 2), (3, 4)])
+        self.assertEqual(db.many_statements, [('? + ?', [(1, 2), (3, 4)])])
+        self.assertTrue(isinstance(cur, sqlite3.Cursor))
+
 
 class TestUnaryOps(SqlTestCase):
     def test_unary_ops(self):
