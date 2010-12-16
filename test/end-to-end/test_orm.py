@@ -13,7 +13,7 @@ class InvestorCompany(orm.model.Model):
 
 class Person(orm.model.Model):
     orm_table = 'person'
-    person_id = orm.model.Column()
+    person_id = orm.model.Column(primary=True)
     name = orm.model.Column()
     investments = orm.model.ManyToMany(
         person_id, InvestorCompany.person_id,
@@ -28,7 +28,7 @@ class Employee(Person):
 
 class Company(orm.model.Model):
     orm_table = 'company'
-    company_id = orm.model.Column()
+    company_id = orm.model.Column(primary=True)
     name = orm.model.Column()
     employees = orm.model.ToMany(company_id, Employee.company_id)
     investors = orm.model.ManyToMany(
