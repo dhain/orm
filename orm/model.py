@@ -222,9 +222,18 @@ class Model(object):
             if column.attr in self.__dict__
         )
 
+    def reload(self):
+        if self.orm_new:
+            return
+        cls = self.__class__
+        row = Select(cls.orm_columns, cls)[0]
+        for column, value in zip(cls.orm_columns, row):
+            self.__dict__[column.attr] = value
+        self.orm_dirty.clear()
+
     @classmethod
     def find(cls, *where):
-        q = ModelSelect(ExprList(cls.orm_columns), cls)
+        q = ModelSelect(cls.orm_columns, cls)
         if where:
             q = q.find(*where)
         return q

@@ -584,6 +584,27 @@ class TestModelActions(SqlTestCase):
             ),
         ])
 
+    def test_reload_new(self):
+        db = connection.connect(':memory:')
+        obj = SomeModel()
+        obj.reload()
+        self.assertTrue(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {})
+        self.assertEqual(db.statements, [])
+
+    def test_reload(self):
+        db = connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        obj = SomeModel.find()[0]
+        connection.connection.rows = rows = [
+            ('row2_1', 'row2_2'),
+        ]
+        obj.reload()
+        self.assertColumnEqual(obj.column1, 'row2_1')
+        self.assertColumnEqual(obj.column2, 'row2_2')
+
 
 class TestModelSelect(SqlTestCase):
     def setUp(self):

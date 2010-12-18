@@ -189,6 +189,20 @@ class TestOrm(SqlTestCase):
         )
         self.assertEqual(cur.fetchone(), (person_id, None))
 
+    def test_model_reload(self):
+        guido = Person.find(Person.name == 'Guido')[0]
+        guido.name = 'Arthur'
+        guido.reload()
+        self.assertColumnEqual(guido.name, 'Guido')
+        cur = self.db.cursor()
+        with self.db:
+            cur.execute(
+                'update person set name=? where name=?',
+                ('Arthur', 'Guido')
+            )
+        guido.reload()
+        self.assertColumnEqual(guido.name, 'Arthur')
+
     def test_join(self):
         a1 = Person.as_alias('m1')
         a2 = Person.as_alias('m2')
