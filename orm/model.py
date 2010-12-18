@@ -129,8 +129,11 @@ class ManyToMany(object):
 
 
 class Model(object):
+    oid = Column('oid', True)
+    oid.attr = 'oid'
+
     orm_new = True
-    orm_columns = ()
+    orm_columns = ExprList([oid])
     orm_primaries = ()
     orm_alias = None
 
@@ -141,13 +144,14 @@ class Model(object):
             cls.orm_columns = columns = ExprList()
             cls.orm_primaries = primaries = ExprList()
             for base in bases:
+                base_primaries = set(base.orm_primaries)
                 for base_column in base.orm_columns:
                     column = base_column.__copy__()
                     column.model = cls
                     assert column.attr is not None
                     setattr(cls, column.attr, column)
                     columns.append(column)
-                    if column.primary:
+                    if base_column in base_primaries:
                         primaries.append(column)
             for attr, value in ns.iteritems():
                 if isinstance(value, Column):
@@ -186,7 +190,7 @@ class Model(object):
             where = reduce(And, (
                 column == self.orm_dirty.get(
                     column, getattr(self, column.attr))
-                for column in self.orm_primaries or self.orm_columns
+                for column in self.orm_primaries or (self.__class__.oid,)
             ))
             q = Update(
                 self,

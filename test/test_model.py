@@ -400,18 +400,21 @@ class TestModel(SqlTestCase):
         self.assertTrue(isinstance(SomeModel.find(), ModelSelect))
         self.assertSqlEqual(
             SomeModel.find(),
-            'select "some_table"."some_column", "some_table"."other_column" '
+            'select "some_table"."some_column", "some_table"."other_column", '
+            '"some_table"."oid" '
             'from "some_table"'
         )
         self.assertSqlEqual(
             SomeModel.find(SomeModel.column1 == 1),
-            'select "some_table"."some_column", "some_table"."other_column" '
+            'select "some_table"."some_column", "some_table"."other_column", '
+            '"some_table"."oid" '
             'from "some_table" where "some_table"."some_column" = ?',
             (1,)
         )
         self.assertSqlEqual(
             SomeModel.find(Expr(1) > 2, Expr(3) > 4),
-            'select "some_table"."some_column", "some_table"."other_column" '
+            'select "some_table"."some_column", "some_table"."other_column", '
+            '"some_table"."oid" '
             'from "some_table" where (? > ?) and (? > ?)',
             (1, 2, 3, 4)
         )
@@ -421,7 +424,7 @@ class TestModel(SqlTestCase):
         self.assertTrue(issubclass(a, SomeModel))
         self.assertSqlEqual(
             a.find(),
-            'select "m"."some_column", "m"."other_column" '
+            'select "m"."some_column", "m"."other_column", "m"."oid" '
             'from "some_table" "m"'
         )
         self.assertTrue(REGISTERED_MODELS['SomeModel'] is SomeModel)
@@ -433,13 +436,19 @@ class TestModelSubclass(SqlTestCase):
         self.assertTrue(isinstance(SomeSubclass.orm_columns, ExprList))
         self.assertItemsIdentical(
             SomeSubclass.orm_columns,
-            (SomeSubclass.column1, SomeSubclass.column2, SomeSubclass.column3)
+            (
+                SomeSubclass.column1,
+                SomeSubclass.column2,
+                SomeSubclass.oid,
+                SomeSubclass.column3
+            )
         )
         self.assertEqual(SomeSubclass.column1.attr, 'column1')
         self.assertEqual(SomeSubclass.column1.model, SomeSubclass)
 
     def test_orm_primaries(self):
         self.assertTrue(isinstance(SomeSubclass.orm_primaries, ExprList))
+        print SomeSubclass.orm_primaries
         self.assertItemsIdentical(
             SomeSubclass.orm_primaries,
             (SomeSubclass.column1, SomeSubclass.column3)
@@ -507,8 +516,7 @@ class TestModelActions(SqlTestCase):
         no_primaries.orm_primaries = ExprList()
         obj = no_primaries()
         obj.orm_new = False
-        obj.__dict__['column1'] = 'old1'
-        obj.__dict__['column2'] = 'old2'
+        obj.__dict__['oid'] = 2
         obj.column1 = 'hello'
         obj.column2 = 'world'
         obj.save()
@@ -518,9 +526,8 @@ class TestModelActions(SqlTestCase):
             (
                 'update "some_table" set '
                 '"some_column" = ?, "other_column" = ? '
-                'where ("some_table"."some_column" = ?) '
-                'and ("some_table"."other_column" = ?)',
-                ('hello', 'world', 'old1', 'old2')
+                'where "some_table"."oid" = ?',
+                ('hello', 'world', 2)
             ),
         ])
 
@@ -561,7 +568,7 @@ class TestModelSelect(SqlTestCase):
     def test_join(self):
         connection.connect(':memory:')
         connection.connection.rows = rows = [
-            ('row1_1', 'row1_2', 'row1_1', 'row1_2'),
+            ('row1_1', 'row1_2', 1, 'row1_1', 'row1_2', 1),
         ]
         a1 = SomeModel.as_alias('m1')
         a2 = SomeModel.as_alias('m2')
