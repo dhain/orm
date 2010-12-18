@@ -168,6 +168,27 @@ class TestOrm(SqlTestCase):
         cur.execute('select company_id from person where name=?', ('Guido',))
         self.assertEqual(cur.fetchone()[0], google.company_id)
 
+    def test_model_delete(self):
+        guido = Person.find(Person.name == 'Guido')[0]
+        with self.db:
+            guido.delete()
+        cur = self.db.cursor()
+        cur.execute('select 1 from person where name=?', ('Guido',))
+        self.assertEqual(cur.fetchone(), None)
+
+    def test_model_delete_then_save(self):
+        guido = Person.find(Person.name == 'Guido')[0]
+        person_id = guido.person_id
+        with self.db:
+            guido.delete()
+            guido.save()
+        cur = self.db.cursor()
+        cur.execute(
+            'select person_id, company_id from person where name=?',
+            ('Guido',)
+        )
+        self.assertEqual(cur.fetchone(), (person_id, None))
+
     def test_join(self):
         a1 = Person.as_alias('m1')
         a2 = Person.as_alias('m2')

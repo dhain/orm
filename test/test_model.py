@@ -19,6 +19,12 @@ class SomeModel(Model):
 SomeModel.orm_columns.sort(key=lambda x: x.attr)
 
 
+class SomeModelNoPrimaries(SomeModel):
+    pass
+
+SomeModelNoPrimaries.orm_primaries = ExprList()
+
+
 class SomeSubclass(SomeModel):
     column3 = Column('third_column', primary=True)
 
@@ -512,9 +518,7 @@ class TestModelActions(SqlTestCase):
 
     def test_save_update_no_primaries(self):
         db = connection.connect(':memory:')
-        no_primaries = type('SomeModelNoPrimaries', (SomeModel,), {})
-        no_primaries.orm_primaries = ExprList()
-        obj = no_primaries()
+        obj = SomeModelNoPrimaries()
         obj.orm_new = False
         obj.__dict__['oid'] = 2
         obj.column1 = 'hello'
@@ -539,6 +543,46 @@ class TestModelActions(SqlTestCase):
         self.assertFalse(obj.orm_new)
         self.assertEqual(obj.orm_dirty, {})
         self.assertEqual(db.statements, [])
+
+    def test_delete_new(self):
+        db = connection.connect(':memory:')
+        obj = SomeModel()
+        obj.delete()
+        self.assertTrue(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {})
+        self.assertEqual(db.statements, [])
+
+    def test_delete(self):
+        db = connection.connect(':memory:')
+        obj = SomeModel()
+        obj.orm_new = False
+        obj.__dict__['column1'] = 'old1'
+        obj.delete()
+        self.assertTrue(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {SomeModel.column1: 'old1'})
+        self.assertEqual(db.statements, [
+            (
+                'delete from "some_table" '
+                'where "some_table"."some_column" = ?',
+                ('old1',)
+            ),
+        ])
+
+    def test_delete_no_primaries(self):
+        db = connection.connect(':memory:')
+        obj = SomeModelNoPrimaries()
+        obj.orm_new = False
+        obj.__dict__['oid'] = 2
+        obj.delete()
+        self.assertTrue(obj.orm_new)
+        self.assertEqual(obj.orm_dirty, {SomeModelNoPrimaries.oid: 2})
+        self.assertEqual(db.statements, [
+            (
+                'delete from "some_table" '
+                'where "some_table"."oid" = ?',
+                (2,)
+            ),
+        ])
 
 
 class TestModelSelect(SqlTestCase):

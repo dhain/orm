@@ -171,6 +171,13 @@ class Model(object):
         self.orm_dirty = {}
         return self
 
+    def _where(self):
+        return reduce(And, (
+            column == self.orm_dirty.get(
+                column, getattr(self, column.attr))
+            for column in self.orm_primaries or (self.__class__.oid,)
+        ))
+
     def save(self):
         if not (self.orm_new or self.orm_dirty):
             return
@@ -187,11 +194,6 @@ class Model(object):
                 ) or None
             )
         else:
-            where = reduce(And, (
-                column == self.orm_dirty.get(
-                    column, getattr(self, column.attr))
-                for column in self.orm_primaries or (self.__class__.oid,)
-            ))
             q = Update(
                 self,
                 ExprList(
@@ -202,11 +204,23 @@ class Model(object):
                     getattr(self, column.attr)
                     for column in self.orm_dirty
                 ),
-                where
+                self._where()
             )
         q.execute()
         self.orm_new = False
         self.orm_dirty.clear()
+
+    def delete(self):
+        if self.orm_new:
+            return
+        q = Delete(self, self._where())
+        q.execute()
+        self.orm_new = True
+        self.orm_dirty = dict(
+            (column, self.__dict__[column.attr])
+            for column in self.orm_columns
+            if column.attr in self.__dict__
+        )
 
     @classmethod
     def find(cls, *where):
