@@ -93,6 +93,9 @@ class ToMany(object):
         value = getattr(obj, self.my_column.attr)
         return self.other_column.model.find(self.other_column == value)
 
+    def __set__(self, obj, value):
+        raise AttributeError("can't set attribute")
+
 
 class ManyToMany(object):
     def __init__(self, my_column, my_join, other_join, other_column):
@@ -120,6 +123,9 @@ class ManyToMany(object):
         )
         q.sources = ExprList([self.other_column.model, self.other_join.model])
         return q
+
+    def __set__(self, obj, value):
+        raise AttributeError("can't set attribute")
 
 
 class Model(object):

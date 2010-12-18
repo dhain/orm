@@ -214,6 +214,36 @@ class TestToMany(SqlTestCase):
         self.assertTrue(isinstance(res, ModelSelect))
         self.assertTrue(isinstance(res[0], a2))
 
+    def test_set(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a = SomeModel.as_alias('m')
+        a.a = ToMany(a.column1, a.column1)
+        obj = a()
+        def set_col():
+            obj.a = []
+        self.assertRaises(
+            AttributeError,
+            set_col
+        )
+
+    def test_del(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a = SomeModel.as_alias('m')
+        a.a = ToMany(a.column1, a.column1)
+        obj = a()
+        def del_col():
+            del obj.a
+        self.assertRaises(
+            AttributeError,
+            del_col
+        )
+
     def test_dereference_other_column(self):
         connection.connect(':memory:')
         connection.connection.rows = rows = [
@@ -252,6 +282,44 @@ class TestManyToMany(SqlTestCase):
         res = obj.a2
         self.assertTrue(isinstance(res, ModelSelect))
         self.assertTrue(isinstance(res[0], a2))
+
+    def test_set(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a1 = SomeModel.as_alias('m1')
+        a2 = SomeModel.as_alias('m2')
+        a1.a2 = t = ManyToMany(
+            a1.column1, SomeModelSomeModel.m1_column1,
+            SomeModelSomeModel.m2_column1, a2.column1
+        )
+        obj = a1()
+        def set_col():
+            obj.a2 = []
+        self.assertRaises(
+            AttributeError,
+            set_col
+        )
+
+    def test_del(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        a1 = SomeModel.as_alias('m1')
+        a2 = SomeModel.as_alias('m2')
+        a1.a2 = t = ManyToMany(
+            a1.column1, SomeModelSomeModel.m1_column1,
+            SomeModelSomeModel.m2_column1, a2.column1
+        )
+        obj = a1()
+        def del_col():
+            del obj.a2
+        self.assertRaises(
+            AttributeError,
+            del_col
+        )
 
     def test_dereference_my_join(self):
         connection.connect(':memory:')
