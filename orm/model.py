@@ -23,11 +23,13 @@ def dereference_column(name):
 class Column(Expr):
     no_value = object()
 
-    def __init__(self, name=None, primary=False):
+    def __init__(self, name=None, primary=False, adapter=None, converter=None):
         self.name = name
         self.attr = None
         self.model = None
         self.primary = primary
+        self.adapter = adapter
+        self.converter = converter
 
     def __copy__(self):
         column = Column(self.name)
@@ -38,6 +40,11 @@ class Column(Expr):
 
     def __set__(self, obj, value):
         obj.orm_dirty[self] = obj.__dict__.get(self.attr, Column.no_value)
+        obj.__dict__[self.attr] = value
+
+    def set_from_db(self, obj, value):
+        if self.converter is not None:
+            value = self.converter(value)
         obj.__dict__[self.attr] = value
 
     def sql(self):
@@ -181,31 +188,20 @@ class Model(object):
     def save(self):
         if not (self.orm_new or self.orm_dirty):
             return
+        columns = ExprList(
+            Sql('"%s"' % (column.name,))
+            for column in self.orm_dirty
+        )
+        attrs = ExprList()
+        for column in self.orm_dirty:
+            value = getattr(self, column.attr)
+            if column.adapter is not None:
+                value = column.adapter(value)
+            attrs.append(value)
         if self.orm_new:
-            q = Insert(
-                self,
-                ExprList(
-                    Sql('"%s"' % (column.name,))
-                    for column in self.orm_dirty
-                ) or None,
-                ExprList(
-                    getattr(self, column.attr)
-                    for column in self.orm_dirty
-                ) or None
-            )
+            q = Insert(self, columns or None, attrs or None)
         else:
-            q = Update(
-                self,
-                ExprList(
-                    Sql('"%s"' % (column.name,))
-                    for column in self.orm_dirty
-                ),
-                ExprList(
-                    getattr(self, column.attr)
-                    for column in self.orm_dirty
-                ),
-                self._where()
-            )
+            q = Update(self, columns, attrs, self._where())
         q.execute()
         self.orm_new = False
         self.orm_dirty.clear()
@@ -228,7 +224,7 @@ class Model(object):
         cls = self.__class__
         row = Select(cls.orm_columns, cls)[0]
         for column, value in zip(cls.orm_columns, row):
-            self.__dict__[column.attr] = value
+            column.set_from_db(self, value)
         self.orm_dirty.clear()
 
     @classmethod
@@ -273,7 +269,7 @@ class ModelSelect(Select):
                     indexes[column.model] = len(res)
                     res.append(column.model.__new__(column.model))
                     res[-1].orm_new = False
-                res[indexes[column.model]].__dict__[column.attr] = value
+                column.set_from_db(res[indexes[column.model]], value)
             yield res[0] if len(res) == 1 else tuple(res)
 
 

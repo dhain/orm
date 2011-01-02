@@ -35,6 +35,15 @@ class SomeModelSomeModel(Model):
     m2_column1 = Column()
 
 
+class SomeModelAdapterConverter(Model):
+    orm_table = 'some_table'
+    column1 = Column('some_column', adapter=lambda x: x.upper())
+    column2 = Column('other_column', converter=lambda x: x.upper())
+
+# column1, column2
+SomeModelAdapterConverter.orm_columns.sort(key=lambda x: x.attr)
+
+
 class TestColumn(SqlTestCase):
     def test_sql(self):
         column = Column('some_column')
@@ -69,6 +78,29 @@ class TestColumn(SqlTestCase):
         col.__set__(a, 1)
         self.assertEqual(a.x, 1)
         self.assertEqual(a.orm_dirty, {col: Column.no_value})
+
+    def test_set_from_db(self):
+        class A(object):
+            def __init__(self):
+                self.orm_dirty = {}
+        a = A()
+        col = Column()
+        col.attr = 'x'
+        col.set_from_db(a, 1)
+        self.assertEqual(a.x, 1)
+        self.assertEqual(a.orm_dirty, {})
+
+    def test_set_from_db_with_converter(self):
+        class A(object):
+            def __init__(self):
+                self.orm_dirty = {}
+        a = A()
+        col = Column()
+        col.attr = 'x'
+        col.converter = lambda x: x.upper()
+        col.set_from_db(a, 'asdf')
+        self.assertEqual(a.x, 'ASDF')
+        self.assertEqual(a.orm_dirty, {})
 
     def test_del(self):
         class A(object):
@@ -496,6 +528,18 @@ class TestModelActions(SqlTestCase):
             ('insert into "some_table" default values', ()),
         ])
 
+    def test_insert_column_adapter(self):
+        db = connection.connect(':memory:')
+        obj = SomeModelAdapterConverter()
+        obj.column1 = 'a string'
+        obj.save()
+        self.assertEqual(db.statements, [
+            (
+                'insert into "some_table" ("some_column") values (?)',
+                ('A STRING',)
+            ),
+        ])
+
     def test_save_update(self):
         db = connection.connect(':memory:')
         obj = SomeModel()
@@ -513,6 +557,22 @@ class TestModelActions(SqlTestCase):
                 '"some_column" = ?, "other_column" = ? '
                 'where "some_table"."some_column" = ?',
                 ('hello', 'world', 'old1')
+            ),
+        ])
+
+    def test_update_column_adapter(self):
+        db = connection.connect(':memory:')
+        obj = SomeModelAdapterConverter()
+        obj.orm_new = False
+        obj.__dict__['oid'] = 1
+        obj.column1 = 'a string'
+        obj.save()
+        self.assertEqual(db.statements, [
+            (
+                'update "some_table" set '
+                '"some_column" = ? '
+                'where "some_table"."oid" = ?',
+                ('A STRING', 1)
             ),
         ])
 
@@ -605,6 +665,19 @@ class TestModelActions(SqlTestCase):
         self.assertColumnEqual(obj.column1, 'row2_1')
         self.assertColumnEqual(obj.column2, 'row2_2')
 
+    def test_reload_with_converter(self):
+        db = connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+        ]
+        obj = SomeModelAdapterConverter.find()[0]
+        connection.connection.rows = rows = [
+            ('row2_1', 'row2_2'),
+        ]
+        obj.reload()
+        self.assertColumnEqual(obj.column1, 'row2_1')
+        self.assertColumnEqual(obj.column2, 'ROW2_2')
+
 
 class TestModelSelect(SqlTestCase):
     def setUp(self):
@@ -629,6 +702,21 @@ class TestModelSelect(SqlTestCase):
             self.assertEqual(obj.orm_dirty, {})
             self.assertColumnEqual(obj.column1, row[0])
             self.assertColumnEqual(obj.column2, row[1])
+
+    def test_iter_with_converter(self):
+        connection.connect(':memory:')
+        connection.connection.rows = rows = [
+            ('row1_1', 'row1_2'),
+            ('row2_1', 'row2_2'),
+        ]
+        q = SomeModelAdapterConverter.find()
+        self.assertTrue(isinstance(q, ModelSelect))
+        for row, obj in zip(rows, q):
+            self.assertTrue(isinstance(obj, SomeModelAdapterConverter))
+            self.assertFalse(obj.orm_new)
+            self.assertEqual(obj.orm_dirty, {})
+            self.assertColumnEqual(obj.column1, row[0])
+            self.assertColumnEqual(obj.column2, row[1].upper())
 
     def test_join(self):
         connection.connect(':memory:')
