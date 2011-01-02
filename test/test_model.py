@@ -148,7 +148,7 @@ class TestToOne(SqlTestCase):
 
     def test_get(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a1 = SomeModel.as_alias('m1')
@@ -160,14 +160,14 @@ class TestToOne(SqlTestCase):
 
     def test_get_not_found(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a1 = SomeModel.as_alias('m1')
         a2 = SomeModel.as_alias('m2')
         a1.a2 = ToOne(a1.column1, a2.column1)
         a1_obj = a1.find(a1.column1 == 'row1_1')[0]
-        connection.connection.rows = rows = []
+        connection.get_connection().rows = rows = []
         a2_obj = a1_obj.a2
         self.assertTrue(a2_obj is None)
 
@@ -176,11 +176,11 @@ class TestToOne(SqlTestCase):
         a1 = SomeModel.as_alias('m1')
         a2 = SomeModel.as_alias('m2')
         a1.a2 = ToOne(a1.column1, a2.column1)
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         obj1 = a1.find()[0]
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row2_1', 'row2_2'),
         ]
         obj2 = a2.find()[0]
@@ -189,7 +189,7 @@ class TestToOne(SqlTestCase):
 
     def test_del(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a = SomeModel.as_alias('m')
@@ -204,7 +204,7 @@ class TestToOne(SqlTestCase):
 
     def test_dereference_other_column(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         class MyModel(Model):
@@ -216,7 +216,7 @@ class TestToOne(SqlTestCase):
 
     def test_dereference_other_column_set(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         class MyModel(Model):
@@ -240,7 +240,7 @@ class TestToMany(SqlTestCase):
 
     def test_get(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a1 = SomeModel.as_alias('m1')
@@ -254,7 +254,7 @@ class TestToMany(SqlTestCase):
 
     def test_set(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a = SomeModel.as_alias('m')
@@ -269,7 +269,7 @@ class TestToMany(SqlTestCase):
 
     def test_del(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a = SomeModel.as_alias('m')
@@ -284,7 +284,7 @@ class TestToMany(SqlTestCase):
 
     def test_dereference_other_column(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         class MyModel(Model):
@@ -306,7 +306,7 @@ class TestManyToMany(SqlTestCase):
 
     def test_get(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a1 = SomeModel.as_alias('m1')
@@ -323,7 +323,7 @@ class TestManyToMany(SqlTestCase):
 
     def test_set(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a1 = SomeModel.as_alias('m1')
@@ -342,7 +342,7 @@ class TestManyToMany(SqlTestCase):
 
     def test_del(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         a1 = SomeModel.as_alias('m1')
@@ -361,7 +361,7 @@ class TestManyToMany(SqlTestCase):
 
     def test_dereference_my_join(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         class MyModel(Model):
@@ -376,7 +376,7 @@ class TestManyToMany(SqlTestCase):
 
     def test_dereference_other_join(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         class MyModel(Model):
@@ -391,7 +391,7 @@ class TestManyToMany(SqlTestCase):
 
     def test_dereference_other_column(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         class MyModel(Model):
@@ -654,11 +654,11 @@ class TestModelActions(SqlTestCase):
 
     def test_reload(self):
         db = connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         obj = SomeModel.find()[0]
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row2_1', 'row2_2'),
         ]
         obj.reload()
@@ -667,11 +667,11 @@ class TestModelActions(SqlTestCase):
 
     def test_reload_with_converter(self):
         db = connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
         ]
         obj = SomeModelAdapterConverter.find()[0]
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row2_1', 'row2_2'),
         ]
         obj.reload()
@@ -690,7 +690,7 @@ class TestModelSelect(SqlTestCase):
 
     def test_iter(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
             ('row2_1', 'row2_2'),
         ]
@@ -705,7 +705,7 @@ class TestModelSelect(SqlTestCase):
 
     def test_iter_with_converter(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2'),
             ('row2_1', 'row2_2'),
         ]
@@ -720,7 +720,7 @@ class TestModelSelect(SqlTestCase):
 
     def test_join(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [
+        connection.get_connection().rows = rows = [
             ('row1_1', 'row1_2', 1, 'row1_1', 'row1_2', 1),
         ]
         a1 = SomeModel.as_alias('m1')

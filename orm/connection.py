@@ -1,21 +1,23 @@
 import sqlite3
+import threading
 
 
 def reset():
-    global connection
-    connection = None
+    global state
+    state = threading.local()
 
 reset()
 
 
 def connect(path):
-    global connection
-    connection = sqlite3.connect(path)
+    global state
+    state.connection = connection = sqlite3.connect(path)
     return connection
 
 
 def get_connection():
-    global connection
-    if connection is None:
+    global state
+    try:
+        return state.connection
+    except AttributeError:
         raise RuntimeError('not connected')
-    return connection

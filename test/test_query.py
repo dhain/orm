@@ -362,41 +362,41 @@ class TestSelect(SqlTestCase):
         q = Select(sources=Sql('some_table'))
         self.assertFalse(q.exists())
         self.assertEqual(
-            connection.connection.statements,
+            connection.get_connection().statements,
             [('select 1 from some_table limit 1', ())]
         )
-        connection.connection.rows = rows = [(1,)]
+        connection.get_connection().rows = rows = [(1,)]
         self.assertTrue(q.exists())
 
     def test_len(self):
         connection.connect(':memory:')
         q = Select(sources=Sql('some_table'))
-        connection.connection.rows = [(0,)]
+        connection.get_connection().rows = [(0,)]
         self.assertEqual(len(q), 0)
         self.assertEqual(
-            connection.connection.statements,
+            connection.get_connection().statements,
             [('select count(*) from some_table', ())]
         )
-        connection.connection.rows = [(5,)]
+        connection.get_connection().rows = [(5,)]
         self.assertEqual(len(q), 5)
 
     def test_len_with_limit(self):
         connection.connect(':memory:')
         q = Select(sources=Sql('some_table'))
-        connection.connection.rows = [(5,)]
+        connection.get_connection().rows = [(5,)]
         self.assertEqual(len(q[3:]), 2)
         self.assertEqual(
-            connection.connection.statements,
+            connection.get_connection().statements,
             [('select count(*) from some_table', ())]
         )
 
     def test_iter(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [('col1', 'col2')]
+        connection.get_connection().rows = rows = [('col1', 'col2')]
         q = Select(sources=Sql('some_table'))
         self.assertEqual(list(q), rows)
         self.assertEqual(
-            connection.connection.statements,
+            connection.get_connection().statements,
             [
                 ('select * from some_table', ()),
                 # in cpython, list(x) calls len(x)
@@ -422,21 +422,21 @@ class TestSelect(SqlTestCase):
 
     def test_getitem_index(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = [('row2',)]
+        connection.get_connection().rows = rows = [('row2',)]
         q = Select(sources=Sql('some_table'))
         self.assertEqual(q[1], rows[0])
         self.assertEqual(
-            connection.connection.statements,
+            connection.get_connection().statements,
             [('select * from some_table limit 1, 1', ())]
         )
 
     def test_getitem_index_indexerror(self):
         connection.connect(':memory:')
-        connection.connection.rows = rows = []
+        connection.get_connection().rows = rows = []
         q = Select(sources=Sql('some_table'))
         self.assertRaises(IndexError, q.__getitem__, 1)
         self.assertEqual(
-            connection.connection.statements,
+            connection.get_connection().statements,
             [('select * from some_table limit 1, 1', ())]
         )
 

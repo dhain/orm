@@ -1,5 +1,6 @@
 import sys
 import unittest
+import threading
 
 from .util import *
 from .fakes import sqlite3
@@ -26,6 +27,31 @@ class TestConnection(unittest.TestCase):
         self.assertRaises(RuntimeError, connection.get_connection)
         con = connection.connect(':memory:')
         self.assertEqual(connection.get_connection(), con)
+
+    def test_connection_is_threadlocal(self):
+        def do_it(i, res, cond1, cond2):
+            with cond1:
+                connection.connect(i)
+                cond1.notify_all()
+            # wait for all threads to connect before appending to res
+            with cond1:
+                while len(sqlite3.Connection.instances) < n:
+                    cond1.wait()
+                with cond2:
+                    con = connection.get_connection()
+                    res.append(con.path)
+                    cond2.notify()
+        cond1 = threading.Condition()
+        cond2 = threading.Condition()
+        res = []
+        n = 3
+        for i in xrange(n):
+            t = threading.Thread(target=do_it, args=(i, res, cond1, cond2))
+            t.start()
+        with cond2:
+            while len(res) < n:
+                cond2.wait()
+        self.assertEqual(set(res), set(xrange(3)), res)
 
 
 if __name__ == "__main__":
