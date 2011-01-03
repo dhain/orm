@@ -9,9 +9,9 @@ def reset():
 reset()
 
 
-def connect(path):
+def connect(*args, **kwargs):
     global state
-    state.connection = connection = sqlite3.connect(path)
+    state.connection = connection = sqlite3.connect(*args, **kwargs)
     return connection
 
 
