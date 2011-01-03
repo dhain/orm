@@ -188,12 +188,12 @@ class Model(object):
     def save(self):
         if not (self.orm_new or self.orm_dirty):
             return
-        columns = ExprList(
-            Sql('"%s"' % (column.name,))
-            for column in self.orm_dirty
-        )
+        columns = ExprList()
         attrs = ExprList()
-        for column in self.orm_dirty:
+        for column in self.orm_columns:
+            if column not in self.orm_dirty:
+                continue
+            columns.append(Sql('"%s"' % (column.name,)))
             value = getattr(self, column.attr)
             if column.adapter is not None:
                 value = column.adapter(value)
