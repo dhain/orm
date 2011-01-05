@@ -190,18 +190,18 @@ class TestOrm(SqlTestCase):
         self.assertEqual(cur.fetchone(), (person_id, None))
 
     def test_model_reload(self):
-        guido = Person.find(Person.name == 'Guido')[0]
-        guido.name = 'Arthur'
-        guido.reload()
-        self.assertColumnEqual(guido.name, 'Guido')
+        scott = Person.find(Person.name == 'Scott')[0]
+        scott.name = 'Young Neil'
+        scott.reload()
+        self.assertColumnEqual(scott.name, 'Scott')
         cur = self.db.cursor()
         with self.db:
             cur.execute(
                 'update person set name=? where name=?',
-                ('Arthur', 'Guido')
+                ('Young Neil', 'Scott')
             )
-        guido.reload()
-        self.assertColumnEqual(guido.name, 'Arthur')
+        scott.reload()
+        self.assertColumnEqual(scott.name, 'Young Neil')
 
     def test_join(self):
         a1 = Person.as_alias('m1')

@@ -222,7 +222,7 @@ class Model(object):
         if self.orm_new:
             return
         cls = self.__class__
-        row = Select(cls.orm_columns, cls)[0]
+        row = Select(cls.orm_columns, cls, self._where())[0]
         for column, value in zip(cls.orm_columns, row):
             column.set_from_db(self, value)
         self.orm_dirty.clear()

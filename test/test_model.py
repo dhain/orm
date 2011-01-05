@@ -658,12 +658,25 @@ class TestModelActions(SqlTestCase):
             ('row1_1', 'row1_2'),
         ]
         obj = SomeModel.find()[0]
+        del db.statements[:]
         connection.get_connection().rows = rows = [
             ('row2_1', 'row2_2'),
         ]
         obj.reload()
         self.assertColumnEqual(obj.column1, 'row2_1')
         self.assertColumnEqual(obj.column2, 'row2_2')
+        self.assertEqual(
+            db.statements,
+            [(
+                'select "some_table"."some_column", '
+                '"some_table"."other_column", '
+                '"some_table"."oid" '
+                'from "some_table" '
+                'where "some_table"."some_column" = ? '
+                'limit 0, 1',
+                ('row1_1',)
+            )]
+        )
 
     def test_reload_with_converter(self):
         db = connection.connect(':memory:')
