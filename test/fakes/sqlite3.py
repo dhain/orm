@@ -22,6 +22,11 @@ class Cursor(object):
         if self.rows:
             return self.rows[0]
 
+    @property
+    def lastrowid(self):
+        assert self.connection.statements[-1][0].startswith('insert')
+        return self.connection.lastrowid
+
 
 class Connection(object):
     instances = []
@@ -32,6 +37,7 @@ class Connection(object):
         self.rows = []
         self.statements = []
         self.many_statements = []
+        self.lastrowid = None
 
     def cursor(self):
         return Cursor(self)

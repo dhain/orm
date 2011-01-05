@@ -202,8 +202,13 @@ class Model(object):
             q = Insert(self, columns or None, attrs or None)
         else:
             q = Update(self, columns, attrs, self._where())
-        q.execute()
-        self.orm_new = False
+        cur = q.execute()
+        if self.orm_new:
+            self.orm_new = False
+            cls = self.__class__
+            row = Select(cls.orm_columns, cls, cls.oid == cur.lastrowid)[0]
+            for column, value in zip(cls.orm_columns, row):
+                column.set_from_db(self, value)
         self.orm_dirty.clear()
 
     def delete(self):

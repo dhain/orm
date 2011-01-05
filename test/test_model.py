@@ -504,6 +504,10 @@ class TestModelActions(SqlTestCase):
 
     def test_save_insert(self):
         db = connection.connect(':memory:')
+        db.lastrowid = 1
+        connection.get_connection().rows = rows = [
+            ('hello', 'world'),
+        ]
         obj = SomeModel()
         obj.column1 = 'hello'
         obj.column2 = 'world'
@@ -516,20 +520,50 @@ class TestModelActions(SqlTestCase):
                 '("some_column", "other_column") values (?, ?)',
                 ('hello', 'world')
             ),
+            (
+                'select "some_table"."some_column", '
+                '"some_table"."other_column", '
+                '"some_table"."oid" '
+                'from "some_table" '
+                'where "some_table"."oid" = ? '
+                'limit 0, 1',
+                (1,)
+            ),
         ])
+        self.assertColumnEqual(obj.column1, 'hello')
+        self.assertColumnEqual(obj.column2, 'world')
 
     def test_save_insert_default_values(self):
         db = connection.connect(':memory:')
+        db.lastrowid = 1
+        connection.get_connection().rows = rows = [
+            ('asdf', 'world'),
+        ]
         obj = SomeModel()
         obj.save()
         self.assertFalse(obj.orm_new)
         self.assertEqual(obj.orm_dirty, {})
         self.assertEqual(db.statements, [
             ('insert into "some_table" default values', ()),
+            (
+                'select "some_table"."some_column", '
+                '"some_table"."other_column", '
+                '"some_table"."oid" '
+                'from "some_table" '
+                'where "some_table"."oid" = ? '
+                'limit 0, 1',
+                (1,)
+            ),
         ])
+        self.assertColumnEqual(obj.column1, 'asdf')
+        self.assertColumnEqual(obj.column2, 'world')
 
     def test_insert_column_adapter(self):
         db = connection.connect(':memory:')
+        db.lastrowid = 1
+        connection.get_connection().rows = rows = [
+            ('a string', 'world'),
+        ]
         obj = SomeModelAdapterConverter()
         obj.column1 = 'a string'
         obj.save()
@@ -537,6 +571,15 @@ class TestModelActions(SqlTestCase):
             (
                 'insert into "some_table" ("some_column") values (?)',
                 ('A STRING',)
+            ),
+            (
+                'select "some_table"."some_column", '
+                '"some_table"."other_column", '
+                '"some_table"."oid" '
+                'from "some_table" '
+                'where "some_table"."oid" = ? '
+                'limit 0, 1',
+                (1,)
             ),
         ])
 

@@ -157,6 +157,7 @@ class TestOrm(SqlTestCase):
         cur = self.db.cursor()
         cur.execute('select * from person where name=?', ('Knives',))
         self.assertEqual(cur.fetchone(), (4, 'Knives', None))
+        self.assertColumnEqual(knives.person_id, 4)
 
     def test_model_update(self):
         guido = Employee.find(Employee.name == 'Guido')[0]
