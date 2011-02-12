@@ -59,7 +59,7 @@ class TestColumn(SqlTestCase):
         self.assertSqlEqual(column, '"some_table"."some_column"')
 
     def test_copy(self):
-        attrs = 'name attr model primary'.split()
+        attrs = 'name attr model primary adapter converter'.split()
         column1 = Column()
         for attr in attrs:
             setattr(column1, attr, object())
@@ -67,6 +67,22 @@ class TestColumn(SqlTestCase):
         self.assertFalse(column2 is column1)
         for attr in attrs:
             self.assertEqual(getattr(column2, attr), getattr(column1, attr))
+
+    def test_copy_subclass(self):
+        class C(Column):
+            adapter = lambda: None
+            converter = lambda: None
+        attrs = 'name attr model primary'.split()
+        column1 = C()
+        for attr in attrs:
+            setattr(column1, attr, object())
+        column2 = column1.__copy__()
+        self.assertTrue(isinstance(column2, C))
+        self.assertFalse(column2 is column1)
+        for attr in attrs:
+            self.assertEqual(getattr(column2, attr), getattr(column1, attr))
+        self.assertFalse('adapter' in column2.__dict__)
+        self.assertFalse('converter' in column2.__dict__)
 
     def test_set(self):
         class A(object):
@@ -486,7 +502,6 @@ class TestModelSubclass(SqlTestCase):
 
     def test_orm_primaries(self):
         self.assertTrue(isinstance(SomeSubclass.orm_primaries, ExprList))
-        print SomeSubclass.orm_primaries
         self.assertItemsIdentical(
             SomeSubclass.orm_primaries,
             (SomeSubclass.column1, SomeSubclass.column3)

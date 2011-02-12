@@ -22,20 +22,35 @@ def dereference_column(name):
 
 class Column(Expr):
     no_value = object()
+    name = None
+    primary = False
+    adapter = None
+    converter = None
 
-    def __init__(self, name=None, primary=False, adapter=None, converter=None):
-        self.name = name
+    def __init__(self, name=None, primary=None, adapter=None, converter=None):
+        if name is not None:
+            self.name = name
         self.attr = None
         self.model = None
-        self.primary = primary
-        self.adapter = adapter
-        self.converter = converter
+        if primary is not None:
+            self.primary = primary
+        if adapter is not None:
+            self.adapter = adapter
+        if converter is not None:
+            self.converter = converter
 
     def __copy__(self):
-        column = Column(self.name)
+        column = self.__class__.__new__(self.__class__)
+        if 'name' in self.__dict__:
+            column.name = self.name
         column.attr = self.attr
         column.model = self.model
-        column.primary = self.primary
+        if 'primary' in self.__dict__:
+            column.primary = self.primary
+        if 'adapter' in self.__dict__:
+            column.adapter = self.adapter
+        if 'converter' in self.__dict__:
+            column.converter = self.converter
         return column
 
     def __set__(self, obj, value):
